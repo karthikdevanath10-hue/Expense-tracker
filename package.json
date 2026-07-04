@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": "https://tejutej.github.io/campus-spend",
+  "homepage": "https://karthikdevanath10-hue.github.io/Expense-tracker",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
