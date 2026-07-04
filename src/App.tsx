@@ -8,11 +8,18 @@ import {
 } from 'firebase/firestore';
 
 // --- Firebase Initialization ---
-const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-const app = Object.keys(firebaseConfig).length > 0 ? initializeApp(firebaseConfig) : null;
-const auth = app ? getAuth(app) : null;
-const db = app ? getFirestore(app) : null;
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+const firebaseConfig = {
+  apiKey: "AIzaSyBf9AfKOrEBULcZpVN0oFvevPrPqbdbc3c",
+  authDomain: "campus-spend-new.firebaseapp.com",
+  projectId: "campus-spend-new",
+  storageBucket: "campus-spend-new.firebasestorage.app",
+  messagingSenderId: "410108858917",
+  appId: "1:410108858917:web:663da390ad7458e9e0e5cc"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const appId = 'campus-spend-app';
 
 // --- Custom Toast Component ---
 const Toast = ({ message, type = 'info', onClose }) => {
