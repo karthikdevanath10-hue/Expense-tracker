@@ -258,11 +258,12 @@ export default function App() {
 
     const startSMSListener = () => {
         startReadSMS(
-            (messageText: string) => {
-                processRawSMS(messageText);
-            },
-            (error: any) => {
-                console.log("SMS Read Error:", error);
+            (status: string, smsText: string, error: any) => {
+                if (status === 'success' && smsText) {
+                    processRawSMS(smsText);
+                } else if (status === 'error') {
+                    console.log("SMS Read Error:", error);
+                }
             }
         );
     };
