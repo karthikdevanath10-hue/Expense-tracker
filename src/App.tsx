@@ -213,12 +213,13 @@ export default function App() {
     // --- 3. Calculations ---
     let spentCash = 0;
     let spentUpi = 0;
+    let receivedUpi = 0;
     const categoryData = {};
 
     transactions.forEach(t => {
         if (t.mode === 'cash') spentCash += t.amount;
         if (t.mode === 'upi') spentUpi += t.amount;
-        if (t.mode === 'received_upi') spentUpi -= t.amount;
+        if (t.mode === 'received_upi') receivedUpi += t.amount;
 
         const tags = t.category ? t.category.split(',').map(tag => tag.trim()) : ['Uncategorized'];
         const splitAmount = t.amount / tags.length;
@@ -230,7 +231,7 @@ export default function App() {
     });
 
     const presentCash = budget.cash - spentCash;
-    const presentUpi = budget.upi - spentUpi;
+    const presentUpi = budget.upi - spentUpi + receivedUpi;
 
     // --- 4. Handlers ---
     const saveBudget = async (e) => {
@@ -491,9 +492,15 @@ export default function App() {
                                     <span className="font-medium text-gray-200 font-mono">₹{budget.upi}</span>
                                 </div>
                                 <div className="flex justify-between border-b border-gray-800/60 pb-2">
-                                    <span className="text-gray-400 text-sm">Net Balance Flow:</span>
+                                    <span className="text-gray-400 text-sm">Total Spent:</span>
                                     <span className="font-medium text-rose-400 font-mono">₹{spentUpi}</span>
                                 </div>
+                                {receivedUpi > 0 && (
+                                    <div className="flex justify-between border-b border-gray-800/60 pb-2">
+                                        <span className="text-gray-400 text-sm">Total Received:</span>
+                                        <span className="font-medium text-emerald-400 font-mono">₹{receivedUpi}</span>
+                                    </div>
+                                )}
                                 <div className="flex justify-between pt-1">
                                     <span className="text-gray-300 font-medium">Present Balance:</span>
                                     <span className="text-xl font-bold text-cyan-400 font-mono">₹{presentUpi}</span>
