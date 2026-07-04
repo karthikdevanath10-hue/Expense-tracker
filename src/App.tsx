@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { initializeApp } from 'firebase/app';
 import {
     getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged
@@ -6,10 +6,6 @@ import {
 import {
     getFirestore, collection, query, onSnapshot, addDoc, doc, setDoc, deleteDoc, getDocs
 } from 'firebase/firestore';
-import {
-    Wallet, Smartphone, PieChart, MessageSquare, History, Plus,
-    ArrowDownRight, ArrowUpRight, Zap, Settings, X, CheckCircle
-} from 'lucide-react';
 
 // --- Firebase Initialization ---
 const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
@@ -18,7 +14,7 @@ const auth = app ? getAuth(app) : null;
 const db = app ? getFirestore(app) : null;
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
-// --- Custom Toast Component (Replacing Alerts) ---
+// --- Custom Toast Component ---
 const Toast = ({ message, type = 'info', onClose }) => {
     if (!message) return null;
     const bg = type === 'error' ? 'bg-rose-900 border-rose-500 text-rose-100' :
@@ -27,16 +23,15 @@ const Toast = ({ message, type = 'info', onClose }) => {
 
     return (
         <div className={`fixed bottom-4 right-4 z-50 flex items-center gap-3 px-4 py-3 rounded-lg border shadow-xl animate-in slide-in-from-bottom-5 ${bg}`}>
-            {type === 'success' ? <CheckCircle size={18} /> : <Zap size={18} />}
             <p className="text-sm font-medium">{message}</p>
-            <button onClick={onClose} className="opacity-70 hover:opacity-100"><X size={16} /></button>
+            <button onClick={onClose} className="opacity-70 hover:opacity-100 font-bold">×</button>
         </div>
     );
 };
 
-// --- Custom SVG Donut Chart ---
+// --- Custom SVG Donut Chart (Replacing Canvas to avoid dependencies) ---
 const DonutChart = ({ data }) => {
-    const colors = ['#f87171', '#fb923c', '#fbbf24', '#34d399', '#60a5fa', '#a78bfa', '#22d3ee', '#f472b6'];
+    const colors = ['#f87171', '#fb923c', '#fbbf24', '#34d399', '#60a5fa', '#a78bfa', '#22d3ee', '#f472b6', '#c084fc', '#fb7185'];
     const total = Object.values(data).reduce((sum, val) => sum + val, 0);
 
     if (total === 0) {
@@ -69,25 +64,24 @@ const DonutChart = ({ data }) => {
     });
 
     return (
-        <div className="flex items-center justify-center gap-8 h-full">
-            <svg viewBox="-1.2 -1.2 2.4 2.4" className="w-32 h-32 transform -rotate-90">
+        <div className="flex items-center justify-center gap-8 h-full w-full">
+            <svg viewBox="-1.2 -1.2 2.4 2.4" className="w-36 h-36 transform -rotate-90 shrink-0">
                 {slices.map((slice, i) => (
                     <path key={i} d={slice.pathData} fill="none" stroke={slice.color} strokeWidth="0.4" />
                 ))}
             </svg>
-            <div className="flex flex-col gap-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
+            <div className="flex flex-col gap-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar text-left">
                 {slices.map((slice, i) => (
                     <div key={i} className="flex items-center gap-2 text-xs">
-                        <span className="w-3 h-3 rounded-full" style={{ backgroundColor: slice.color }}></span>
-                        <span className="text-gray-300">{slice.label}</span>
-                        <span className="text-gray-500 ml-auto">₹{slice.value.toFixed(0)}</span>
+                        <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: slice.color }}></span>
+                        <span className="text-gray-300 truncate max-w-[110px]">{slice.label}</span>
+                        <span className="text-gray-500 ml-auto font-mono">₹{slice.value.toFixed(0)}</span>
                     </div>
                 ))}
             </div>
         </div>
     );
 };
-
 
 // --- Main Application Component ---
 export default function App() {
@@ -107,7 +101,13 @@ export default function App() {
     const [selectedTags, setSelectedTags] = useState([]);
     const [customTag, setCustomTag] = useState('');
 
-    const presetTags = ['Food & Canteen', 'Chai & Snacks', 'Xerox & Stationeries', 'Commute & Travel', 'Others'];
+    const presetTags = [
+        { label: 'Food & Canteen', emoji: '🍔' },
+        { label: 'Chai & Snacks', emoji: '☕' },
+        { label: 'Xerox & Stationeries', emoji: '📄' },
+        { label: 'Commute & Travel', emoji: '🚌' },
+        { label: 'Others', emoji: '🌀' }
+    ];
 
     const showToast = (msg, type = 'info') => {
         setToast({ message: msg, type });
@@ -131,7 +131,9 @@ export default function App() {
         };
         initAuth();
 
-        const unsubscribe = onAuthStateChanged(auth, setUser);
+        const unsubscribe = onAuthStateChanged(auth, (usr) => {
+            setUser(usr);
+        });
         return () => unsubscribe();
     }, []);
 
@@ -143,7 +145,8 @@ export default function App() {
         const budgetRef = doc(db, 'artifacts', appId, 'users', user.uid, 'config', 'budget');
         const unsubBudget = onSnapshot(budgetRef, (docSnap) => {
             if (docSnap.exists()) {
-                setBudget(docSnap.data());
+                const data = docSnap.data();
+                setBudget({ cash: data.cash || 0, upi: data.upi || 0 });
             }
         }, (error) => console.error("Budget fetch error:", error));
 
@@ -151,7 +154,7 @@ export default function App() {
         const txQuery = query(collection(db, 'artifacts', appId, 'users', user.uid, 'transactions'));
         const unsubTx = onSnapshot(txQuery, (snapshot) => {
             const txs = [];
-            snapshot.forEach(doc => txs.push({ id: doc.id, ...doc.data() }));
+            snapshot.forEach(docSnap => txs.push({ id: docSnap.id, ...docSnap.data() }));
             // Sort newest first
             txs.sort((a, b) => b.timestamp - a.timestamp);
             setTransactions(txs);
@@ -185,8 +188,9 @@ export default function App() {
     // --- 4. Handlers ---
     const saveBudget = async (e) => {
         e.preventDefault();
-        const newCash = parseFloat(e.target.cash.value) || 0;
-        const newUpi = parseFloat(e.target.upi.value) || 0;
+        const form = e.target;
+        const newCash = parseFloat(form.cash.value) || 0;
+        const newUpi = parseFloat(form.upi.value) || 0;
 
         if (user && db) {
             await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'config', 'budget'), {
@@ -243,6 +247,7 @@ export default function App() {
     };
 
     const clearRecords = async () => {
+        if (!window.confirm("Are you sure you want to clear your records?")) return;
         if (user && db) {
             const q = query(collection(db, 'artifacts', appId, 'users', user.uid, 'transactions'));
             const snaps = await getDocs(q);
@@ -286,12 +291,13 @@ export default function App() {
         const isCredit = ["credited", "received", "added", "deposited"].some(t => lowerText.includes(t));
 
         const finalMode = isCredit ? "received_upi" : "upi";
-        const finalDesc = isCredit ? "Auto: Income Received" : "Auto: Purchase Detected";
+        const finalDesc = isCredit ? "Auto SMS: Income Received" : "Auto SMS: Purchase detected";
         const finalTags = [isCredit ? "Money Received" : "Misc"];
 
         const success = await saveTransaction(extractedAmount, finalMode, finalDesc, finalTags);
         if (success) {
             setSmsInput('');
+            showToast(`Auto-Read SMS Detected: ₹${extractedAmount} (${isCredit ? 'CREDIT' : 'DEBIT'})`, "success");
         }
     };
 
@@ -313,207 +319,167 @@ export default function App() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-900 text-gray-100 font-sans pb-20 md:pb-12">
+        <div className="min-h-screen bg-gray-900 text-gray-100 font-sans pb-12">
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
             {/* Header */}
-            <header className="border-b border-gray-800 bg-gray-900/80 backdrop-blur sticky top-0 z-10 shadow-sm">
-                <div className="max-w-6xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                    <h1 className="text-2xl font-bold bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent flex items-center gap-2">
-                        🚀 CampusSpend <span className="text-xs text-gray-500 font-mono tracking-widest bg-gray-800 px-2 py-0.5 rounded-full">v4 (Cloud)</span>
+            <header className="border-b border-gray-800 bg-gray-900/50 backdrop-blur sticky top-0 z-10">
+                <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+                    <h1 className="text-2xl font-bold bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
+                        🚀 CampusSpend <span className="text-xs text-gray-500 font-mono">v4 (Cloud)</span>
                     </h1>
-                    <div className="flex items-center gap-2">
-                        <span className="text-[10px] sm:text-xs bg-gray-800 text-amber-400 px-2 sm:px-3 py-1 rounded-full border border-amber-800/40 flex items-center gap-1.5">
-                            <MessageSquare size={12} /> SMS Engine
+                    <div className="flex items-center gap-3">
+                        <span className="text-xs bg-gray-800 text-amber-400 px-3 py-1 rounded-full border border-amber-800/40 font-mono">
+                            💬 SMS Reader Ready
                         </span>
-                        <span className={`text-[10px] sm:text-xs px-2 sm:px-3 py-1 rounded-full border flex items-center gap-1.5 ${user ? 'bg-emerald-950/50 text-emerald-400 border-emerald-800/50' : 'bg-gray-800 text-gray-400 border-gray-700'}`}>
-                            <div className={`w-2 h-2 rounded-full ${user ? 'bg-emerald-500 animate-pulse' : 'bg-gray-500'}`}></div>
-                            {user ? 'Cloud Sync Active' : 'Local Mode'}
-                        </span>
+                        {user ? (
+                            <span className="text-xs bg-emerald-950/50 text-emerald-400 px-3 py-1 rounded-full border border-emerald-800/50 flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Cloud Sync Active
+                            </span>
+                        ) : (
+                            <span className="text-xs bg-gray-800 text-gray-400 px-3 py-1 rounded-full border border-gray-700 flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-gray-500"></span> Offline Mode (Demo)
+                            </span>
+                        )}
                     </div>
                 </div>
             </header>
 
-            <main className="max-w-6xl mx-auto px-4 mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <main className="max-w-6xl mx-auto px-4 mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
 
                 {/* Left Column: Dashboard & Logs */}
-                <div className="lg:col-span-2 space-y-6">
+                <div className="lg:col-span-2 space-y-8">
 
                     {/* SMS Simulator Panel */}
-                    <div className="bg-gradient-to-br from-slate-900 to-gray-800 p-5 rounded-2xl border border-cyan-500/20 shadow-lg">
-                        <div className="flex justify-between items-center mb-4">
+                    <div className="bg-gradient-to-r from-slate-900 to-gray-800 p-5 rounded-xl border border-cyan-500/20 shadow-lg">
+                        <div className="flex justify-between items-center mb-3">
                             <div>
-                                <h3 className="text-sm font-bold text-cyan-400 uppercase tracking-wide flex items-center gap-2">
-                                    <MessageSquare size={16} /> Notification Parser
+                                <h3 className="text-sm font-bold text-cyan-400 uppercase tracking-wide">
+                                    Simulator: Bank Transaction SMS Receiver
                                 </h3>
-                                <p className="text-xs text-gray-400 mt-1">Paste a bank SMS below or use simulators to auto-fill the form.</p>
+                                <p className="text-xs text-gray-400">Paste or test a standard bank message layout below to verify automatic parsing.</p>
+                            </div>
+                            <div className="flex gap-2">
+                                <button onClick={() => simulateSMS('debit')} className="text-[11px] bg-rose-950/40 text-rose-400 border border-rose-900/50 px-2.5 py-1 rounded hover:bg-rose-900/30 transition">
+                                    ⚡ Simulate Debit
+                                </button>
+                                <button onClick={() => simulateSMS('credit')} className="text-[11px] bg-emerald-950/40 text-emerald-400 border border-emerald-900/50 px-2.5 py-1 rounded hover:bg-emerald-900/30 transition">
+                                    ⚡ Simulate Credit
+                                </button>
                             </div>
                         </div>
                         <div className="space-y-3">
                             <textarea
                                 value={smsInput}
                                 onChange={(e) => setSmsInput(e.target.value)}
-                                className="w-full h-16 bg-gray-950/50 border border-gray-700 rounded-xl p-3 text-xs font-mono text-gray-300 focus:outline-none focus:border-cyan-500 resize-none transition-colors"
-                                placeholder="e.g., Rs 250.00 debited via UPI to CANTEEN..."
+                                className="w-full h-16 bg-gray-950 border border-gray-700 rounded-lg p-2.5 text-xs font-mono text-gray-300 focus:outline-none focus:border-cyan-500 resize-none transition-colors"
+                                placeholder="Type or paste a notification text (e.g., Rs 250.00 debited via UPI...)"
                             />
-                            <div className="flex flex-wrap gap-2">
-                                <button onClick={() => simulateSMS('debit')} className="flex-1 text-[11px] font-medium bg-rose-950/40 text-rose-400 border border-rose-900/50 px-3 py-2 rounded-lg hover:bg-rose-900/30 transition flex justify-center items-center gap-1">
-                                    <ArrowDownRight size={14} /> Sim Debit
-                                </button>
-                                <button onClick={() => simulateSMS('credit')} className="flex-1 text-[11px] font-medium bg-emerald-950/40 text-emerald-400 border border-emerald-900/50 px-3 py-2 rounded-lg hover:bg-emerald-900/30 transition flex justify-center items-center gap-1">
-                                    <ArrowUpRight size={14} /> Sim Credit
-                                </button>
-                                <button onClick={() => processRawSMS(smsInput)} className="flex-[2] bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold py-2 px-3 rounded-lg border border-cyan-500 transition shadow-[0_0_15px_rgba(8,145,178,0.3)]">
-                                    Process Text
-                                </button>
-                            </div>
+                            <button onClick={() => processRawSMS(smsInput)} className="w-full bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs font-semibold py-2 rounded-lg border border-gray-600 transition">
+                                Parse & Run Extract Engine
+                            </button>
                         </div>
                     </div>
 
-                    {/* Wallet Cards */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="bg-gradient-to-br from-emerald-950/40 to-gray-900 p-5 rounded-2xl border border-emerald-500/20 relative overflow-hidden group">
-                            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity"><Wallet size={64} /></div>
-                            <span className="text-emerald-400 font-bold tracking-wider uppercase text-xs flex items-center gap-2 mb-4"><Wallet size={14} /> Cash Wallet</span>
-                            <div className="space-y-2 relative z-10">
-                                <div className="flex justify-between text-sm"><span className="text-gray-400">Base Budget:</span><span className="text-gray-200">₹{budget.cash}</span></div>
-                                <div className="flex justify-between text-sm border-b border-gray-700/50 pb-2"><span className="text-gray-400">Spent:</span><span className="text-rose-400">₹{spentCash}</span></div>
-                                <div className="flex justify-between pt-1 items-end"><span className="text-gray-300 font-medium text-sm">Balance:</span><span className="text-2xl font-bold text-emerald-400">₹{presentCash}</span></div>
+                    {/* Pocket Money Config */}
+                    <div className="bg-gray-800/40 rounded-xl border border-gray-800 overflow-hidden">
+                        <div className="p-4 flex justify-between items-center">
+                            <div>
+                                <h3 className="text-sm font-medium text-gray-400">Initialize Monthly Pocket Money</h3>
+                                <p className="text-xs text-gray-500">Sends PUT/POST requests to update base budgets on your server</p>
                             </div>
+                            <button onClick={() => setIsBudgetOpen(!isBudgetOpen)} className="bg-gray-800 hover:bg-gray-700 text-cyan-400 border border-cyan-800/40 font-medium text-sm px-4 py-2 rounded-lg transition">
+                                Set Pocket Money
+                            </button>
                         </div>
-
-                        <div className="bg-gradient-to-br from-cyan-950/40 to-gray-900 p-5 rounded-2xl border border-cyan-500/20 relative overflow-hidden group">
-                            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity"><Smartphone size={64} /></div>
-                            <span className="text-cyan-400 font-bold tracking-wider uppercase text-xs flex items-center gap-2 mb-4"><Smartphone size={14} /> UPI Wallet</span>
-                            <div className="space-y-2 relative z-10">
-                                <div className="flex justify-between text-sm"><span className="text-gray-400">Base Budget:</span><span className="text-gray-200">₹{budget.upi}</span></div>
-                                <div className="flex justify-between text-sm border-b border-gray-700/50 pb-2"><span className="text-gray-400">Net Flow:</span><span className="text-rose-400">₹{spentUpi}</span></div>
-                                <div className="flex justify-between pt-1 items-end"><span className="text-gray-300 font-medium text-sm">Balance:</span><span className="text-2xl font-bold text-cyan-400">₹{presentUpi}</span></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Budget Settings */}
-                    <div className="bg-gray-800/40 rounded-2xl border border-gray-800 overflow-hidden">
-                        <button onClick={() => setIsBudgetOpen(!isBudgetOpen)} className="w-full p-4 flex justify-between items-center hover:bg-gray-800/60 transition">
-                            <div className="flex items-center gap-3 text-left">
-                                <Settings size={18} className="text-gray-400" />
-                                <div>
-                                    <h3 className="text-sm font-medium text-gray-300">Modify Base Budgets</h3>
-                                    <p className="text-xs text-gray-500">Update your monthly starting amounts</p>
-                                </div>
-                            </div>
-                            <span className={`transform transition-transform text-gray-500 ${isBudgetOpen ? 'rotate-180' : ''}`}>▼</span>
-                        </button>
 
                         {isBudgetOpen && (
-                            <div className="border-t border-gray-800 bg-gray-900/50 p-5">
-                                <form onSubmit={saveBudget} className="flex flex-col sm:flex-row gap-4 items-end">
-                                    <div className="flex-1 w-full">
-                                        <label className="block text-xs text-gray-400 mb-1.5 uppercase">Cash (₹)</label>
-                                        <input name="cash" type="number" defaultValue={budget.cash} required className="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-cyan-500" />
+                            <div className="border-t border-gray-800 bg-gray-900/40 p-4">
+                                <form onSubmit={saveBudget} className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+                                    <div>
+                                        <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Cash Amount (₹)</label>
+                                        <input name="cash" type="number" defaultValue={budget.cash} required min="0" className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-gray-100 focus:outline-none focus:border-cyan-500" />
                                     </div>
-                                    <div className="flex-1 w-full">
-                                        <label className="block text-xs text-gray-400 mb-1.5 uppercase">UPI (₹)</label>
-                                        <input name="upi" type="number" defaultValue={budget.upi} required className="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 focus:outline-none focus:border-cyan-500" />
+                                    <div>
+                                        <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">UPI Amount (₹)</label>
+                                        <input name="upi" type="number" defaultValue={budget.upi} required min="0" className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-gray-100 focus:outline-none focus:border-cyan-500" />
                                     </div>
-                                    <button type="submit" className="w-full sm:w-auto bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 px-6 rounded-lg transition">Update</button>
+                                    <button type="submit" className="w-full bg-cyan-500 hover:bg-cyan-600 text-gray-900 font-bold py-1.5 text-sm rounded-lg transition">
+                                        Save Config
+                                    </button>
                                 </form>
                             </div>
                         )}
                     </div>
 
-                    {/* Analytics & Charts */}
-                    <div className="bg-gray-800/30 p-5 rounded-2xl border border-gray-800">
-                        <h3 className="text-sm font-semibold mb-4 text-gray-400 uppercase tracking-wider flex items-center gap-2"><PieChart size={16} /> Spend Analytics</h3>
-                        <div className="h-40">
+                    {/* Wallet Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="bg-gradient-to-br from-emerald-950/30 to-gray-900 p-6 rounded-2xl border border-emerald-500/20 shadow-xl">
+                            <span className="text-emerald-400 font-bold tracking-wider uppercase text-xs block mb-4">💵 Cash Wallet</span>
+                            <div className="space-y-3">
+                                <div className="flex justify-between border-b border-gray-800/60 pb-2">
+                                    <span className="text-gray-400 text-sm">Previous Balance:</span>
+                                    <span className="font-medium text-gray-200 font-mono">₹{budget.cash}</span>
+                                </div>
+                                <div className="flex justify-between border-b border-gray-800/60 pb-2">
+                                    <span className="text-gray-400 text-sm">Total Spent:</span>
+                                    <span className="font-medium text-rose-400 font-mono">₹{spentCash}</span>
+                                </div>
+                                <div className="flex justify-between pt-1">
+                                    <span className="text-gray-300 font-medium">Present Balance:</span>
+                                    <span className="text-xl font-bold text-emerald-400 font-mono">₹{presentCash}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-gradient-to-br from-cyan-950/30 to-gray-900 p-6 rounded-2xl border border-cyan-500/20 shadow-xl">
+                            <span className="text-cyan-400 font-bold tracking-wider uppercase text-xs block mb-4">📱 UPI Wallet</span>
+                            <div className="space-y-3">
+                                <div className="flex justify-between border-b border-gray-800/60 pb-2">
+                                    <span className="text-gray-400 text-sm">Previous Balance:</span>
+                                    <span className="font-medium text-gray-200 font-mono">₹{budget.upi}</span>
+                                </div>
+                                <div className="flex justify-between border-b border-gray-800/60 pb-2">
+                                    <span className="text-gray-400 text-sm">Net Balance Flow:</span>
+                                    <span className="font-medium text-rose-400 font-mono">₹{spentUpi}</span>
+                                </div>
+                                <div className="flex justify-between pt-1">
+                                    <span className="text-gray-300 font-medium">Present Balance:</span>
+                                    <span className="text-xl font-bold text-cyan-400 font-mono">₹{presentUpi}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Spend Breakdown / Analytics */}
+                    <div className="bg-gray-800/30 p-6 rounded-2xl border border-gray-800">
+                        <h3 className="text-sm font-semibold mb-4 text-gray-400 uppercase tracking-wider">Spend Breakdown</h3>
+                        <div className="h-56 flex justify-center">
                             <DonutChart data={categoryData} />
                         </div>
                     </div>
 
-                </div>
-
-                {/* Right Column: Transaction Input & History */}
-                <div className="space-y-6">
-
-                    {/* Add Transaction Form */}
-                    <div className="bg-gray-800/60 p-5 rounded-2xl border border-gray-700 shadow-xl lg:sticky lg:top-24 relative overflow-hidden">
-                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500 to-emerald-500"></div>
-                        <h3 className="text-base font-bold mb-4 text-gray-100 flex items-center gap-2">
-                            <Plus size={18} className="text-cyan-400" /> Quick Entry
-                        </h3>
-
-                        <form onSubmit={addTransaction} className="space-y-4">
-                            <div className="flex gap-4">
-                                <div className="flex-[2]">
-                                    <label className="block text-[10px] text-gray-400 mb-1 uppercase tracking-wide">Amount (₹)</label>
-                                    <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} required min="1" className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-gray-100 font-bold focus:outline-none focus:border-cyan-500 transition-colors" placeholder="0.00" />
-                                </div>
-                                <div className="flex-[3]">
-                                    <label className="block text-[10px] text-gray-400 mb-1 uppercase tracking-wide">Mode</label>
-                                    <select value={mode} onChange={(e) => setMode(e.target.value)} className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-cyan-500 appearance-none">
-                                        <option value="upi">📱 UPI (Debit)</option>
-                                        <option value="cash">💵 Cash (Debit)</option>
-                                        <option value="received_upi">💰 UPI (Credit)</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-[10px] text-gray-400 mb-1.5 uppercase tracking-wide">Tags (Select Multi)</label>
-                                <div className="flex flex-wrap gap-1.5 mb-2">
-                                    {presetTags.map(tag => (
-                                        <button type="button" key={tag} onClick={() => toggleTag(tag)} className={`text-[10px] px-2.5 py-1 rounded-md border transition-all ${selectedTags.includes(tag) ? 'bg-cyan-900/40 text-cyan-300 border-cyan-500/50' : 'bg-gray-900 text-gray-400 border-gray-700 hover:border-gray-500'}`}>
-                                            {tag}
-                                        </button>
-                                    ))}
-                                </div>
-                                <div className="w-full bg-gray-900 border border-gray-700 rounded-lg p-2 focus-within:border-cyan-500 transition flex flex-wrap gap-1 items-center">
-                                    {selectedTags.filter(t => !presetTags.includes(t)).map(tag => (
-                                        <span key={tag} className="inline-flex items-center gap-1 bg-gray-800 text-gray-300 border border-gray-600 text-[10px] px-2 py-0.5 rounded">
-                                            {tag} <button type="button" onClick={() => toggleTag(tag)} className="hover:text-rose-400 text-gray-500"><X size={12} /></button>
-                                        </span>
-                                    ))}
-                                    <input type="text" value={customTag} onChange={(e) => setCustomTag(e.target.value)} onKeyDown={handleCustomTag} className="flex-1 bg-transparent text-sm text-gray-100 focus:outline-none placeholder-gray-600 min-w-[100px]" placeholder="Type & Enter..." />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-[10px] text-gray-400 mb-1 uppercase tracking-wide">Remarks</label>
-                                <input type="text" value={desc} onChange={(e) => setDesc(e.target.value)} className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-cyan-500" placeholder="Optional notes..." />
-                            </div>
-
-                            <button type="submit" className="w-full bg-gradient-to-r from-cyan-600 to-emerald-600 hover:from-cyan-500 hover:to-emerald-500 text-white font-bold py-3 rounded-lg transition-transform transform active:scale-[0.98] mt-2 shadow-lg flex justify-center items-center gap-2">
-                                <Plus size={18} /> Save Entry
-                            </button>
-                        </form>
-                    </div>
-
-                    {/* History List */}
-                    <div className="bg-gray-800/30 rounded-2xl border border-gray-800 overflow-hidden flex flex-col h-64 lg:h-auto">
-                        <div className="px-5 py-3 border-b border-gray-800 bg-gray-800/20 flex justify-between items-center sticky top-0 backdrop-blur-md">
-                            <h3 className="font-semibold text-sm text-gray-300 flex items-center gap-2"><History size={16} /> History</h3>
-                            <button onClick={() => { if (window.confirm('Wipe all logs?')) clearRecords(); }} className="text-[10px] text-gray-500 hover:text-rose-400 transition underline decoration-gray-600 hover:decoration-rose-400">Clear</button>
+                    {/* Transaction History */}
+                    <div className="bg-gray-800/30 rounded-2xl border border-gray-800 overflow-hidden">
+                        <div className="px-6 py-4 border-b border-gray-800 bg-gray-800/10 flex justify-between items-center">
+                            <h3 className="font-semibold text-gray-200">Transaction History</h3>
+                            <button onClick={clearRecords} className="text-xs text-rose-400 hover:underline">Clear Records</button>
                         </div>
-
-                        <div className="divide-y divide-gray-800/50 overflow-y-auto custom-scrollbar flex-1">
+                        <div className="divide-y divide-gray-800 max-h-60 overflow-y-auto custom-scrollbar">
                             {transactions.length === 0 ? (
-                                <div className="p-8 text-center text-sm text-gray-600">No recent activity.</div>
+                                <p className="p-6 text-sm text-center text-gray-500">No records found.</p>
                             ) : (
                                 transactions.map((t, idx) => {
                                     const isIncome = t.mode === 'received_upi';
                                     return (
-                                        <div key={t.id || idx} className="px-5 py-3 flex justify-between items-center hover:bg-gray-800/30 transition">
-                                            <div className="overflow-hidden pr-2">
-                                                <h4 className="text-sm font-medium text-gray-200 truncate" title={t.desc}>{t.desc}</h4>
-                                                <div className="flex items-center gap-2 mt-0.5">
-                                                    <span className={`text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded border ${isIncome ? 'bg-emerald-950/30 text-emerald-400 border-emerald-900/50' : 'bg-cyan-950/30 text-cyan-400 border-cyan-900/50'}`}>
-                                                        {t.mode.replace('_', ' ')}
-                                                    </span>
-                                                    <span className="text-[10px] text-gray-500 truncate max-w-[120px]">{t.category}</span>
-                                                </div>
+                                        <div key={t.id || idx} className="px-6 py-3 flex justify-between items-center hover:bg-gray-800/10 transition">
+                                            <div>
+                                                <h4 className="text-sm font-medium text-gray-200">{t.desc}</h4>
+                                                <span className={`text-[10px] uppercase font-bold ${isIncome ? 'text-emerald-400' : 'text-cyan-400'}`}>
+                                                    {t.mode.replace('_', ' ')} • {t.category}
+                                                </span>
                                             </div>
-                                            <span className={`font-mono font-bold text-sm whitespace-nowrap ${isIncome ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                            <span className={`font-semibold text-sm font-mono ${isIncome ? 'text-emerald-400' : 'text-rose-400'}`}>
                                                 {isIncome ? '+' : '-'}₹{t.amount}
                                             </span>
                                         </div>
@@ -524,6 +490,71 @@ export default function App() {
                     </div>
 
                 </div>
+
+                {/* Right Column: Log Spend Entry */}
+                <div className="space-y-6">
+                    <div className="bg-gray-800/70 p-6 rounded-2xl border border-gray-800 shadow-xl sticky top-24">
+                        <h3 className="text-md font-bold mb-4 text-gray-200">📝 Log Spend Entry</h3>
+
+                        <form onSubmit={addTransaction} className="space-y-4">
+                            <div>
+                                <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Amount (₹)</label>
+                                <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} required min="1" className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-gray-100 focus:outline-none focus:border-cyan-500" placeholder="0.00" />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Payment Mode / Type</label>
+                                <select value={mode} onChange={(e) => setMode(e.target.value)} className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-gray-100 focus:outline-none focus:border-cyan-500 appearance-none">
+                                    <option value="upi">📱 UPI Transfer (Deducted)</option>
+                                    <option value="cash">💵 Hard Cash (Deducted)</option>
+                                    <option value="received_upi">💰 Received Money (UPI Credit)</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Categories (Select Multiple)</label>
+                                <div className="flex flex-wrap gap-1.5 mb-3">
+                                    {presetTags.map(tag => (
+                                        <button
+                                            type="button"
+                                            key={tag.label}
+                                            onClick={() => toggleTag(tag.label)}
+                                            className={`text-xs px-2.5 py-1 rounded-md border transition-all ${selectedTags.includes(tag.label) ? 'border-cyan-500 text-cyan-400 bg-cyan-950/20' : 'bg-gray-900 text-gray-300 border-gray-700 hover:border-gray-500'}`}
+                                        >
+                                            {tag.emoji} {tag.label}
+                                        </button>
+                                    ))}
+                                </div>
+                                <div className="w-full bg-gray-900 border border-gray-700 rounded-lg p-2 focus-within:border-cyan-500 transition min-h-[42px] flex flex-wrap gap-1.5 items-center">
+                                    {selectedTags.filter(t => !presetTags.map(pt => pt.label).includes(t)).map(tag => (
+                                        <span key={tag} className="inline-flex items-center gap-1 bg-cyan-950 text-cyan-400 border border-cyan-800 text-xs px-2 py-0.5 rounded-md">
+                                            ✨ {tag}
+                                            <button type="button" onClick={() => toggleTag(tag)} className="hover:text-rose-400 font-bold ml-0.5">×</button>
+                                        </span>
+                                    ))}
+                                    <input
+                                        type="text"
+                                        value={customTag}
+                                        onChange={(e) => setCustomTag(e.target.value)}
+                                        onKeyDown={handleCustomTag}
+                                        className="flex-1 bg-transparent text-sm text-gray-100 focus:outline-none placeholder-gray-600 min-w-[120px]"
+                                        placeholder="Type custom category & press Enter..."
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Remarks</label>
+                                <input type="text" value={desc} onChange={(e) => setDesc(e.target.value)} className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-gray-100 focus:outline-none focus:border-cyan-500" placeholder="e.g., Party split with friends" />
+                            </div>
+
+                            <button type="submit" className="w-full bg-gradient-to-r from-cyan-500 to-emerald-500 text-gray-900 font-bold py-2.5 rounded-lg transition transform active:scale-95 mt-2">
+                                Send to Server
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
             </main>
 
             <style dangerouslySetInnerHTML={{
