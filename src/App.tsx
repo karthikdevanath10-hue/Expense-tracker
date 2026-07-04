@@ -284,9 +284,9 @@ export default function App() {
     const addTransaction = async (e) => {
         e.preventDefault();
         const amt = parseFloat(amount);
-        let finalTags = [...selectedTags];
+        const finalTags = [...selectedTags];
         if (finalTags.length === 0) {
-            finalTags.push(mode === 'received_upi' ? 'Money Received' : 'Misc');
+            finalTags.push(mode === 'received_upi' || mode === 'received_cash' ? 'Money Received' : 'Misc');
         }
 
         const success = await saveTransaction(amt, mode, desc, finalTags);
@@ -477,6 +477,12 @@ export default function App() {
                                     <span className="text-gray-400 text-sm">Total Spent:</span>
                                     <span className="font-medium text-rose-400 font-mono">₹{spentCash}</span>
                                 </div>
+                                {receivedCash > 0 && (
+                                    <div className="flex justify-between border-b border-gray-800/60 pb-2">
+                                        <span className="text-gray-400 text-sm">Total Received:</span>
+                                        <span className="font-medium text-emerald-400 font-mono">₹{receivedCash}</span>
+                                    </div>
+                                )}
                                 <div className="flex justify-between pt-1">
                                     <span className="text-gray-300 font-medium">Present Balance:</span>
                                     <span className="text-xl font-bold text-emerald-400 font-mono">₹{presentCash}</span>
@@ -528,7 +534,7 @@ export default function App() {
                                 <p className="p-6 text-sm text-center text-gray-500">No records found.</p>
                             ) : (
                                 transactions.map((t, idx) => {
-                                    const isIncome = t.mode === 'received_upi';
+                                    const isIncome = t.mode === 'received_upi' || t.mode === 'received_cash';
                                     return (
                                         <div key={t.id || idx} className="px-6 py-3 flex justify-between items-center hover:bg-gray-800/10 transition">
                                             <div>
@@ -565,7 +571,8 @@ export default function App() {
                                 <select value={mode} onChange={(e) => setMode(e.target.value)} className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-gray-100 focus:outline-none focus:border-cyan-500 appearance-none">
                                     <option value="upi">📱 UPI Transfer (Deducted)</option>
                                     <option value="cash">💵 Hard Cash (Deducted)</option>
-                                    <option value="received_upi">💰 Received Money (UPI Credit)</option>
+                                    <option value="received_upi">💰 Received UPI (Credit)</option>
+                                    <option value="received_cash">💸 Received Cash (Credit)</option>
                                 </select>
                             </div>
 
