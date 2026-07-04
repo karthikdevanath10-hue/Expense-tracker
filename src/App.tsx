@@ -4,7 +4,7 @@ import {
     getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged
 } from 'firebase/auth';
 import {
-    getFirestore, collection, query, onSnapshot, addDoc, doc, setDoc, deleteDoc, getDocs
+    getFirestore, collection, query, onSnapshot, addDoc, doc, setDoc, deleteDoc, getDocs, getDoc
 } from 'firebase/firestore';
 
 // --- Firebase Initialization ---
@@ -121,6 +121,14 @@ export default function App() {
         setTimeout(() => setToast(null), 4000);
     };
 
+    // --- Load Local Backup Cache on Mount ---
+    useEffect(() => {
+        const localBudget = localStorage.getItem('local_budget');
+        if (localBudget) setBudget(JSON.parse(localBudget));
+        const localTxs = localStorage.getItem('local_txs');
+        if (localTxs) setTransactions(JSON.parse(localTxs));
+    }, []);
+
     // --- 1. Firebase Auth ---
     useEffect(() => {
         if (!auth) return;
@@ -144,6 +152,35 @@ export default function App() {
         return () => unsubscribe();
     }, []);
 
+    // --- Sync Local Unsynced Data to Firestore on Login ---
+    useEffect(() => {
+        if (!user || !db) return;
+        const syncLocalData = async () => {
+            try {
+                const localTxsStr = localStorage.getItem('local_txs');
+                if (localTxsStr) {
+                    const localTxs = JSON.parse(localTxsStr);
+                    const unsynced = localTxs.filter(tx => !tx.id);
+                    for (const tx of unsynced) {
+                        await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'transactions'), tx);
+                    }
+                }
+                const localBudgetStr = localStorage.getItem('local_budget');
+                if (localBudgetStr) {
+                    const localBudget = JSON.parse(localBudgetStr);
+                    const budgetRef = doc(db, 'artifacts', appId, 'users', user.uid, 'config', 'budget');
+                    const docSnap = await getDoc(budgetRef);
+                    if (!docSnap.exists() && (localBudget.cash > 0 || localBudget.upi > 0)) {
+                        await setDoc(budgetRef, localBudget);
+                    }
+                }
+            } catch (err) {
+                console.error("Local sync error:", err);
+            }
+        };
+        syncLocalData();
+    }, [user]);
+
     // --- 2. Firestore Data Sync ---
     useEffect(() => {
         if (!user || !db) return;
@@ -153,7 +190,9 @@ export default function App() {
         const unsubBudget = onSnapshot(budgetRef, (docSnap) => {
             if (docSnap.exists()) {
                 const data = docSnap.data();
-                setBudget({ cash: data.cash || 0, upi: data.upi || 0 });
+                const newBudget = { cash: data.cash || 0, upi: data.upi || 0 };
+                setBudget(newBudget);
+                localStorage.setItem('local_budget', JSON.stringify(newBudget));
             }
         }, (error) => console.error("Budget fetch error:", error));
 
@@ -165,6 +204,7 @@ export default function App() {
             // Sort newest first
             txs.sort((a, b) => b.timestamp - a.timestamp);
             setTransactions(txs);
+            localStorage.setItem('local_txs', JSON.stringify(txs));
         }, (error) => console.error("Transactions fetch error:", error));
 
         return () => { unsubBudget(); unsubTx(); };
@@ -198,16 +238,16 @@ export default function App() {
         const form = e.target;
         const newCash = parseFloat(form.cash.value) || 0;
         const newUpi = parseFloat(form.upi.value) || 0;
+        const newBudget = { cash: newCash, upi: newUpi };
 
         if (user && db) {
-            await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'config', 'budget'), {
-                cash: newCash, upi: newUpi
-            });
+            await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'config', 'budget'), newBudget);
             showToast("Budget saved to cloud!", "success");
         } else {
-            setBudget({ cash: newCash, upi: newUpi });
+            setBudget(newBudget);
             showToast("Budget saved locally.");
         }
+        localStorage.setItem('local_budget', JSON.stringify(newBudget));
         setIsBudgetOpen(false);
     };
 
@@ -230,7 +270,11 @@ export default function App() {
             await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'transactions'), payload);
             showToast("Transaction synced!", "success");
         } else {
-            setTransactions(prev => [payload, ...prev]);
+            setTransactions(prev => {
+                const newTxs = [payload, ...prev];
+                localStorage.setItem('local_txs', JSON.stringify(newTxs));
+                return newTxs;
+            });
             showToast("Transaction saved locally.");
         }
         return true;
