@@ -46,7 +46,7 @@ const db = getFirestore(app);
 const appId = 'campus-spend-app';
 
 const DonutChart = ({ data }: { data: { [key: string]: number } }) => {
-    const colors = ['#ffffff', '#f5f5f5', '#e5e5e5', '#d4d4d4', '#a3a3a3', '#737373', '#525252', '#404040', '#262626', '#171717'];
+    const colors = ['#1e3a8a', '#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#0284c7', '#06b6d4', '#0d9488', '#4f46e5', '#312e81'];
     const total = Object.values(data).reduce((sum, val) => sum + val, 0);
 
     if (total === 0) {
@@ -107,6 +107,7 @@ export default function App() {
     const [isBudgetOpen, setIsBudgetOpen] = useState(false);
     const [smsInput, setSmsInput] = useState('');
     const [smsPermissionStatus, setSmsPermissionStatus] = useState('Checking...');
+    const [darkMode, setDarkMode] = useState(false);
 
     // Form States
     const [amount, setAmount] = useState('');
@@ -123,6 +124,12 @@ export default function App() {
         { label: 'Others', emoji: '🌀' }
     ];
 
+    const toggleDarkMode = async () => {
+        const newVal = !darkMode;
+        setDarkMode(newVal);
+        await AsyncStorage.setItem('theme_dark', newVal.toString());
+    };
+
     // --- Load Local Cache on Mount ---
     useEffect(() => {
         const loadCache = async () => {
@@ -131,6 +138,8 @@ export default function App() {
                 if (localBudget) setBudget(JSON.parse(localBudget));
                 const localTxs = await AsyncStorage.getItem('local_txs');
                 if (localTxs) setTransactions(JSON.parse(localTxs));
+                const localDark = await AsyncStorage.getItem('theme_dark');
+                if (localDark) setDarkMode(localDark === 'true');
             } catch (err) {
                 console.error("AsyncStorage load cache error:", err);
             }
@@ -441,219 +450,240 @@ export default function App() {
     }, [budget]);
 
     return (
-        <SafeAreaView style={styles.safeArea}>
-            <StatusBar barStyle="light-content" backgroundColor="#000000" />
+        <SafeAreaView style={[styles.safeArea, { backgroundColor: darkMode ? '#000000' : '#f8fafc' }]}>
+            <StatusBar barStyle={darkMode ? "light-content" : "dark-content"} backgroundColor={darkMode ? "#000000" : "#f8fafc"} />
             <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
                 
                 {/* Header */}
                 <View style={styles.header}>
-                    <Text style={styles.title}>🚀 CampusSpend</Text>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                        <Text style={[styles.title, { color: darkMode ? '#ffffff' : '#0f172a' }]}>🚀 CampusSpend</Text>
+                        <TouchableOpacity 
+                            onPress={toggleDarkMode} 
+                            style={{ 
+                                padding: 8, 
+                                borderRadius: 20, 
+                                backgroundColor: darkMode ? '#121212' : '#f1f5f9',
+                                borderStyle: 'solid',
+                                borderWidth: 1,
+                                borderColor: darkMode ? '#262626' : '#e2e8f0',
+                            }}
+                        >
+                            <Text style={{ fontSize: 16 }}>{darkMode ? '☀️' : '🌙'}</Text>
+                        </TouchableOpacity>
+                    </View>
                     <View style={styles.badgeRow}>
-                        <View style={styles.badgeAmber}>
-                            <Text style={styles.badgeAmberText}>💬 SMS: {smsPermissionStatus}</Text>
+                        <View style={[styles.badgeAmber, { backgroundColor: darkMode ? '#121212' : '#f1f5f9', borderColor: darkMode ? '#262626' : '#e2e8f0' }]}>
+                            <Text style={[styles.badgeAmberText, { color: darkMode ? '#a3a3a3' : '#475569' }]}>💬 SMS: {smsPermissionStatus}</Text>
                         </View>
                         {user ? (
-                            <View style={styles.badgeGreen}>
-                                <View style={styles.pulseDot} />
-                                <Text style={styles.badgeGreenText}>Cloud Sync</Text>
+                            <View style={[styles.badgeGreen, { backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(37, 99, 235, 0.05)', borderColor: darkMode ? '#262626' : '#e2e8f0' }]}>
+                                <View style={[styles.pulseDot, { backgroundColor: darkMode ? '#ffffff' : '#2563eb' }]} />
+                                <Text style={[styles.badgeGreenText, { color: darkMode ? '#ffffff' : '#2563eb' }]}>Cloud Sync</Text>
                             </View>
                         ) : (
-                            <View style={styles.badgeGray}>
-                                <Text style={styles.badgeGrayText}>Offline</Text>
+                            <View style={[styles.badgeGray, { backgroundColor: darkMode ? '#121212' : '#f1f5f9', borderColor: darkMode ? '#262626' : '#e2e8f0' }]}>
+                                <Text style={[styles.badgeGrayText, { color: darkMode ? '#a3a3a3' : '#475569' }]}>Offline</Text>
                             </View>
                         )}
                     </View>
                 </View>
 
                 {/* Simulator Card */}
-                <View style={styles.simulatorCard}>
+                <View style={[styles.simulatorCard, { backgroundColor: darkMode ? '#0a0a0a' : '#ffffff', borderColor: darkMode ? '#1f1f1f' : '#e2e8f0' }]}>
                     <View style={styles.simHeader}>
                         <View>
-                            <Text style={styles.simTitle}>Simulator: Bank SMS Receiver</Text>
-                            <Text style={styles.simSub}>Test your SMS receiver extraction logic below.</Text>
+                            <Text style={[styles.simTitle, { color: darkMode ? '#ffffff' : '#0f172a' }]}>Simulator: Bank SMS Receiver</Text>
+                            <Text style={[styles.simSub, { color: darkMode ? '#a3a3a3' : '#64748b' }]}>Test your SMS receiver extraction logic below.</Text>
                         </View>
                     </View>
                     <View style={styles.simButtonRow}>
-                        <TouchableOpacity style={styles.simBtnDebit} onPress={() => simulateSMS('debit')}>
-                            <Text style={styles.simBtnDebitText}>⚡ Sim Debit</Text>
+                        <TouchableOpacity style={[styles.simBtnDebit, { backgroundColor: darkMode ? '#121212' : '#f8fafc', borderColor: darkMode ? '#262626' : '#e2e8f0' }]} onPress={() => simulateSMS('debit')}>
+                            <Text style={[styles.simBtnDebitText, { color: darkMode ? '#ffffff' : '#2563eb' }]}>⚡ Sim Debit</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.simBtnCredit} onPress={() => simulateSMS('credit')}>
-                            <Text style={styles.simBtnCreditText}>⚡ Sim Credit</Text>
+                        <TouchableOpacity style={[styles.simBtnCredit, { backgroundColor: darkMode ? '#121212' : '#f8fafc', borderColor: darkMode ? '#262626' : '#e2e8f0' }]} onPress={() => simulateSMS('credit')}>
+                            <Text style={[styles.simBtnCreditText, { color: darkMode ? '#ffffff' : '#2563eb' }]}>⚡ Sim Credit</Text>
                         </TouchableOpacity>
                     </View>
                     <TextInput
+                        multiline
+                        placeholder="Type or paste incoming SMS here..."
+                        placeholderTextColor={darkMode ? '#404040' : '#94a3b8'}
                         value={smsInput}
                         onChangeText={setSmsInput}
-                        style={styles.simTextarea}
-                        placeholder="Or paste SMS content manually..."
-                        placeholderTextColor="#4b5563"
-                        multiline
+                        style={[styles.simTextarea, { backgroundColor: darkMode ? '#000000' : '#ffffff', borderColor: darkMode ? '#262626' : '#e2e8f0', color: darkMode ? '#ffffff' : '#0f172a' }]}
                     />
-                    <TouchableOpacity style={styles.simProcessBtn} onPress={() => processRawSMS(smsInput)}>
-                        <Text style={styles.simProcessText}>Parse & Run Extract Engine</Text>
+                    <TouchableOpacity style={[styles.simProcessBtn, { backgroundColor: darkMode ? '#ffffff' : '#2563eb', borderColor: darkMode ? '#ffffff' : '#2563eb' }]} onPress={() => processRawSMS(smsInput)}>
+                        <Text style={[styles.simProcessText, { color: darkMode ? '#000000' : '#ffffff' }]}>Parse & Auto Extract SMS</Text>
                     </TouchableOpacity>
                 </View>
 
-                {/* Pocket Money Setup */}
-                <View style={styles.budgetCard}>
+                {/* Pocket Money Setup Card */}
+                <View style={[styles.budgetCard, { backgroundColor: darkMode ? '#0a0a0a' : '#ffffff', borderColor: darkMode ? '#1f1f1f' : '#e2e8f0' }]}>
                     <View style={styles.budgetHeader}>
-                        <View style={{ flex: 1 }}>
-                            <Text style={styles.budgetTitle}>Initialize Pocket Money</Text>
-                            <Text style={styles.budgetSub}>Set starting base monthly amounts.</Text>
+                        <View style={{ flex: 1, marginRight: 8 }}>
+                            <Text style={[styles.budgetTitle, { color: darkMode ? '#a3a3a3' : '#475569' }]}>Initialize Pocket Money</Text>
+                            <Text style={[styles.budgetSub, { color: darkMode ? '#737373' : '#94a3b8' }]}>Update monthly base budget</Text>
                         </View>
-                        <TouchableOpacity style={styles.budgetToggleBtn} onPress={() => setIsBudgetOpen(!isBudgetOpen)}>
-                            <Text style={styles.budgetValueText}>Set Money</Text>
+                        <TouchableOpacity style={[styles.budgetToggleBtn, { backgroundColor: darkMode ? '#121212' : '#f1f5f9', borderColor: darkMode ? '#262626' : '#e2e8f0' }]} onPress={() => setIsBudgetOpen(!isBudgetOpen)}>
+                            <Text style={[styles.budgetValueText, { color: darkMode ? '#ffffff' : '#2563eb' }]}>Set Budget</Text>
                         </TouchableOpacity>
                     </View>
 
                     {isBudgetOpen && (
-                        <View style={styles.budgetForm}>
+                        <View style={[styles.budgetForm, { borderTopColor: darkMode ? '#1f1f1f' : '#e2e8f0', backgroundColor: darkMode ? '#000000' : '#f8fafc' }]}>
                             <View style={styles.budgetInputsRow}>
                                 <View style={styles.budgetInputContainer}>
-                                    <Text style={styles.label}>Cash (₹)</Text>
+                                    <Text style={[styles.label, { color: darkMode ? '#a3a3a3' : '#475569' }]}>Cash Base Amount (₹)</Text>
                                     <TextInput
+                                        keyboardType="numeric"
                                         value={budgetFormCash}
                                         onChangeText={setBudgetFormCash}
-                                        keyboardType="numeric"
-                                        style={styles.input}
+                                        style={[styles.input, { backgroundColor: darkMode ? '#000000' : '#ffffff', borderColor: darkMode ? '#262626' : '#e2e8f0', color: darkMode ? '#ffffff' : '#0f172a' }]}
                                     />
                                 </View>
                                 <View style={styles.budgetInputContainer}>
-                                    <Text style={styles.label}>UPI (₹)</Text>
+                                    <Text style={[styles.label, { color: darkMode ? '#a3a3a3' : '#475569' }]}>UPI Base Amount (₹)</Text>
                                     <TextInput
+                                        keyboardType="numeric"
                                         value={budgetFormUpi}
                                         onChangeText={setBudgetFormUpi}
-                                        keyboardType="numeric"
-                                        style={styles.input}
+                                        style={[styles.input, { backgroundColor: darkMode ? '#000000' : '#ffffff', borderColor: darkMode ? '#262626' : '#e2e8f0', color: darkMode ? '#ffffff' : '#0f172a' }]}
                                     />
                                 </View>
                             </View>
-                            <TouchableOpacity
-                                style={styles.budgetSaveBtn}
-                                onPress={() => saveBudget(parseFloat(budgetFormCash) || 0, parseFloat(budgetFormUpi) || 0)}
-                            >
-                                <Text style={styles.budgetSaveText}>Save Config</Text>
+                            <TouchableOpacity style={[styles.budgetSaveBtn, { backgroundColor: darkMode ? '#ffffff' : '#2563eb' }]} onPress={() => saveBudget(parseFloat(budgetFormCash) || 0, parseFloat(budgetFormUpi) || 0)}>
+                                <Text style={[styles.budgetSaveText, { color: darkMode ? '#000000' : '#ffffff' }]}>Save Settings</Text>
                             </TouchableOpacity>
                         </View>
                     )}
                 </View>
 
-                {/* Balance Cards */}
+                {/* Wallets Display cards */}
                 <View style={styles.walletsRow}>
                     {/* Cash Wallet */}
-                    <View style={[styles.walletCard, styles.cashBorder]}>
-                        <Text style={styles.cashTitle}>💵 Cash Wallet</Text>
+                    <View style={[styles.walletCard, styles.cashBorder, { backgroundColor: darkMode ? '#0a0a0a' : '#ffffff', borderColor: darkMode ? '#1f1f1f' : '#e2e8f0' }]}>
+                        <Text style={[styles.cashTitle, { color: darkMode ? '#ffffff' : '#1e3a8a' }]}>💵 CASH WALLET</Text>
                         <View style={styles.walletDetails}>
                             <View style={styles.walletDetailRow}>
-                                <Text style={styles.walletDetailLabel}>Previous:</Text>
-                                <Text style={styles.walletDetailVal}>₹{budget.cash}</Text>
+                                <Text style={[styles.walletDetailLabel, { color: darkMode ? '#737373' : '#64748b' }]}>Base Budget:</Text>
+                                <Text style={[styles.walletDetailVal, { color: darkMode ? '#e5e7eb' : '#0f172a' }]}>₹{budget.cash}</Text>
                             </View>
                             <View style={styles.walletDetailRow}>
-                                <Text style={styles.walletDetailLabel}>Spent:</Text>
+                                <Text style={[styles.walletDetailLabel, { color: darkMode ? '#737373' : '#64748b' }]}>Total Spent:</Text>
                                 <Text style={styles.spentText}>₹{spentCash}</Text>
                             </View>
                             {receivedCash > 0 && (
                                 <View style={styles.walletDetailRow}>
-                                    <Text style={styles.walletDetailLabel}>Received:</Text>
+                                    <Text style={[styles.walletDetailLabel, { color: darkMode ? '#737373' : '#64748b' }]}>Total Recv:</Text>
                                     <Text style={styles.receivedText}>₹{receivedCash}</Text>
                                 </View>
                             )}
                             <View style={styles.walletBalanceRow}>
-                                <Text style={styles.walletBalanceLabel}>Present:</Text>
-                                <Text style={styles.cashBalance}>₹{presentCash}</Text>
+                                <Text style={[styles.walletBalanceLabel, { color: darkMode ? '#a3a3a3' : '#475569' }]}>Balance:</Text>
+                                <Text style={[styles.cashBalance, { color: darkMode ? '#ffffff' : '#0f172a' }]}>₹{presentCash}</Text>
                             </View>
                         </View>
                     </View>
 
                     {/* UPI Wallet */}
-                    <View style={[styles.walletCard, styles.upiBorder]}>
-                        <Text style={styles.upiTitle}>📱 UPI Wallet</Text>
+                    <View style={[styles.walletCard, styles.upiBorder, { backgroundColor: darkMode ? '#0a0a0a' : '#ffffff', borderColor: darkMode ? '#1f1f1f' : '#e2e8f0' }]}>
+                        <Text style={[styles.upiTitle, { color: darkMode ? '#ffffff' : '#1e3a8a' }]}>📱 UPI WALLET</Text>
                         <View style={styles.walletDetails}>
                             <View style={styles.walletDetailRow}>
-                                <Text style={styles.walletDetailLabel}>Previous:</Text>
-                                <Text style={styles.walletDetailVal}>₹{budget.upi}</Text>
+                                <Text style={[styles.walletDetailLabel, { color: darkMode ? '#737373' : '#64748b' }]}>Base Budget:</Text>
+                                <Text style={[styles.walletDetailVal, { color: darkMode ? '#e5e7eb' : '#0f172a' }]}>₹{budget.upi}</Text>
                             </View>
                             <View style={styles.walletDetailRow}>
-                                <Text style={styles.walletDetailLabel}>Spent:</Text>
+                                <Text style={[styles.walletDetailLabel, { color: darkMode ? '#737373' : '#64748b' }]}>Total Spent:</Text>
                                 <Text style={styles.spentText}>₹{spentUpi}</Text>
                             </View>
                             {receivedUpi > 0 && (
                                 <View style={styles.walletDetailRow}>
-                                    <Text style={styles.walletDetailLabel}>Received:</Text>
+                                    <Text style={[styles.walletDetailLabel, { color: darkMode ? '#737373' : '#64748b' }]}>Total Recv:</Text>
                                     <Text style={styles.receivedText}>₹{receivedUpi}</Text>
                                 </View>
                             )}
                             <View style={styles.walletBalanceRow}>
-                                <Text style={styles.walletBalanceLabel}>Present:</Text>
-                                <Text style={styles.upiBalance}>₹{presentUpi}</Text>
+                                <Text style={[styles.walletBalanceLabel, { color: darkMode ? '#a3a3a3' : '#475569' }]}>Balance:</Text>
+                                <Text style={[styles.upiBalance, { color: darkMode ? '#ffffff' : '#0f172a' }]}>₹{presentUpi}</Text>
                             </View>
                         </View>
                     </View>
                 </View>
 
-                {/* Spending Donut Chart Breakdown */}
-                <View style={styles.breakdownCard}>
-                    <Text style={styles.breakdownTitle}>Spend Breakdown</Text>
+                {/* Spend Breakdown Graph */}
+                <View style={[styles.breakdownCard, { backgroundColor: darkMode ? '#0a0a0a' : '#ffffff', borderColor: darkMode ? '#1f1f1f' : '#e2e8f0' }]}>
+                    <Text style={[styles.breakdownTitle, { color: darkMode ? '#ffffff' : '#0f172a' }]}>SPEND BREAKDOWN</Text>
                     <DonutChart data={categoryData} />
                 </View>
 
-                {/* Entry Log Form */}
-                <View style={styles.formCard}>
-                    <Text style={styles.formTitle}>📝 Log Spend Entry</Text>
+                {/* Log Spend Entry Form */}
+                <View style={[styles.formCard, { backgroundColor: darkMode ? '#0a0a0a' : '#ffffff', borderColor: darkMode ? '#1f1f1f' : '#e2e8f0' }]}>
+                    <Text style={[styles.formTitle, { color: darkMode ? '#ffffff' : '#0f172a' }]}>📝 LOG SPEND ENTRY</Text>
+
                     <View style={styles.formGroup}>
-                        <Text style={styles.label}>Amount (₹)</Text>
+                        <Text style={[styles.label, { color: darkMode ? '#a3a3a3' : '#475569' }]}>Amount (₹)</Text>
                         <TextInput
+                            keyboardType="numeric"
+                            placeholder="0.00"
+                            placeholderTextColor={darkMode ? '#404040' : '#94a3b8'}
                             value={amount}
                             onChangeText={setAmount}
-                            keyboardType="numeric"
-                            style={styles.input}
-                            placeholder="0.00"
-                            placeholderTextColor="#4b5563"
+                            style={[styles.input, { backgroundColor: darkMode ? '#000000' : '#ffffff', borderColor: darkMode ? '#262626' : '#e2e8f0', color: darkMode ? '#ffffff' : '#0f172a' }]}
                         />
                     </View>
 
                     <View style={styles.formGroup}>
-                        <Text style={styles.label}>Payment Mode</Text>
-                        <View style={styles.modeSelector}>
+                        <Text style={[styles.label, { color: darkMode ? '#a3a3a3' : '#475569' }]}>Payment Mode / Type</Text>
+                        <View style={[styles.modeSelector, { backgroundColor: darkMode ? '#000000' : '#ffffff', borderColor: darkMode ? '#262626' : '#e2e8f0' }]}>
                             <TouchableOpacity
-                                style={[styles.modeOption, mode === 'upi' && styles.modeSelected]}
+                                style={[styles.modeOption, mode === 'upi' && { backgroundColor: darkMode ? '#1c1c1e' : '#f1f5f9' }]}
                                 onPress={() => setMode('upi')}
                             >
-                                <Text style={[styles.modeText, mode === 'upi' && styles.modeSelectedText]}>📱 UPI</Text>
+                                <Text style={[styles.modeText, mode === 'upi' ? { color: darkMode ? '#ffffff' : '#2563eb', fontWeight: 'bold' } : { color: darkMode ? '#737373' : '#475569' }]}>UPI</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
-                                style={[styles.modeOption, mode === 'cash' && styles.modeSelected]}
+                                style={[styles.modeOption, mode === 'cash' && { backgroundColor: darkMode ? '#1c1c1e' : '#f1f5f9' }]}
                                 onPress={() => setMode('cash')}
                             >
-                                <Text style={[styles.modeText, mode === 'cash' && styles.modeSelectedText]}>💵 Cash</Text>
+                                <Text style={[styles.modeText, mode === 'cash' ? { color: darkMode ? '#ffffff' : '#2563eb', fontWeight: 'bold' } : { color: darkMode ? '#737373' : '#475569' }]}>CASH</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
-                                style={[styles.modeOption, mode === 'received_upi' && styles.modeSelected]}
+                                style={[styles.modeOption, mode === 'received_upi' && { backgroundColor: darkMode ? '#1c1c1e' : '#f1f5f9' }]}
                                 onPress={() => setMode('received_upi')}
                             >
-                                <Text style={[styles.modeText, mode === 'received_upi' && styles.modeSelectedText]}>💰 UPI In</Text>
+                                <Text style={[styles.modeText, mode === 'received_upi' ? { color: darkMode ? '#ffffff' : '#2563eb', fontWeight: 'bold' } : { color: darkMode ? '#737373' : '#475569' }]}>+UPI</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
-                                style={[styles.modeOption, mode === 'received_cash' && styles.modeSelected]}
+                                style={[styles.modeOption, mode === 'received_cash' && { backgroundColor: darkMode ? '#1c1c1e' : '#f1f5f9' }]}
                                 onPress={() => setMode('received_cash')}
                             >
-                                <Text style={[styles.modeText, mode === 'received_cash' && styles.modeSelectedText]}>💸 Cash In</Text>
+                                <Text style={[styles.modeText, mode === 'received_cash' ? { color: darkMode ? '#ffffff' : '#2563eb', fontWeight: 'bold' } : { color: darkMode ? '#737373' : '#475569' }]}>+CASH</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
 
                     <View style={styles.formGroup}>
-                        <Text style={styles.label}>Categories</Text>
+                        <Text style={[styles.label, { color: darkMode ? '#a3a3a3' : '#475569' }]}>Categories (Multi-Select)</Text>
                         <View style={styles.tagsContainer}>
                             {presetTags.map(tag => {
                                 const isSelected = selectedTags.includes(tag.label);
                                 return (
                                     <TouchableOpacity
                                         key={tag.label}
-                                        style={[styles.tagButton, isSelected && styles.tagSelected]}
                                         onPress={() => toggleTag(tag.label)}
+                                        style={[
+                                            styles.tagButton,
+                                            { backgroundColor: darkMode ? '#000000' : '#ffffff', borderColor: darkMode ? '#262626' : '#e2e8f0' },
+                                            isSelected && { borderColor: darkMode ? '#ffffff' : '#2563eb', backgroundColor: darkMode ? '#ffffff' : '#2563eb' }
+                                        ]}
                                     >
-                                        <Text style={[styles.tagText, isSelected && styles.tagSelectedText]}>
+                                        <Text style={[
+                                            styles.tagText,
+                                            { color: darkMode ? '#a3a3a3' : '#475569' },
+                                            isSelected && { color: darkMode ? '#000000' : '#ffffff', fontWeight: '500' }
+                                        ]}>
                                             {tag.emoji} {tag.label}
                                         </Text>
                                     </TouchableOpacity>
@@ -661,26 +691,27 @@ export default function App() {
                             })}
                         </View>
 
+                        {/* Custom Category Input */}
                         <View style={styles.customTagRow}>
                             <TextInput
+                                placeholder="Add custom tag..."
+                                placeholderTextColor={darkMode ? '#404040' : '#94a3b8'}
                                 value={customTag}
                                 onChangeText={setCustomTag}
-                                style={[styles.input, { flex: 1, marginRight: 8 }]}
-                                placeholder="Custom tag..."
-                                placeholderTextColor="#4b5563"
+                                style={[styles.input, { flex: 1, marginRight: 8, backgroundColor: darkMode ? '#000000' : '#ffffff', borderColor: darkMode ? '#262626' : '#e2e8f0', color: darkMode ? '#ffffff' : '#0f172a' }]}
                             />
-                            <TouchableOpacity style={styles.customTagAddBtn} onPress={handleCustomTagSubmit}>
-                                <Text style={styles.customTagAddText}>Add</Text>
+                            <TouchableOpacity style={[styles.customTagAddBtn, { backgroundColor: darkMode ? '#ffffff' : '#2563eb', borderColor: darkMode ? '#ffffff' : '#2563eb' }]} onPress={handleCustomTagSubmit}>
+                                <Text style={[styles.customTagAddText, { color: darkMode ? '#000000' : '#ffffff' }]}>Add</Text>
                             </TouchableOpacity>
                         </View>
 
-                        {/* Selected custom tags review */}
+                        {/* Selected Custom Tags Bubbles */}
                         <View style={styles.selectedCustomTagsHolder}>
                             {selectedTags.filter(t => !presetTags.map(pt => pt.label).includes(t)).map(tag => (
-                                <View key={tag} style={styles.customTagBubble}>
-                                    <Text style={styles.customTagBubbleText}>✨ {tag}</Text>
+                                <View key={tag} style={[styles.customTagBubble, { backgroundColor: darkMode ? '#121212' : '#eff6ff', borderColor: darkMode ? '#262626' : '#dbeafe' }]}>
+                                    <Text style={[styles.customTagBubbleText, { color: darkMode ? '#ffffff' : '#2563eb' }]}>✨ {tag}</Text>
                                     <TouchableOpacity onPress={() => toggleTag(tag)}>
-                                        <Text style={styles.customTagBubbleClose}>×</Text>
+                                        <Text style={styles.customTagBubbleClose}> ×</Text>
                                     </TouchableOpacity>
                                 </View>
                             ))}
@@ -688,25 +719,25 @@ export default function App() {
                     </View>
 
                     <View style={styles.formGroup}>
-                        <Text style={styles.label}>Remarks</Text>
+                        <Text style={[styles.label, { color: darkMode ? '#a3a3a3' : '#475569' }]}>Remarks</Text>
                         <TextInput
+                            placeholder="e.g., Dinner split with friends"
+                            placeholderTextColor={darkMode ? '#404040' : '#94a3b8'}
                             value={desc}
                             onChangeText={setDesc}
-                            style={styles.input}
-                            placeholder="Optional notes..."
-                            placeholderTextColor="#4b5563"
+                            style={[styles.input, { backgroundColor: darkMode ? '#000000' : '#ffffff', borderColor: darkMode ? '#262626' : '#e2e8f0', color: darkMode ? '#ffffff' : '#0f172a' }]}
                         />
                     </View>
 
-                    <TouchableOpacity style={styles.submitBtn} onPress={addTransaction}>
-                        <Text style={styles.submitText}>Save Spend Entry</Text>
+                    <TouchableOpacity style={[styles.submitBtn, { backgroundColor: darkMode ? '#ffffff' : '#2563eb' }]} onPress={addTransaction}>
+                        <Text style={[styles.submitText, { color: darkMode ? '#000000' : '#ffffff' }]}>Save Spend Entry</Text>
                     </TouchableOpacity>
                 </View>
 
                 {/* Transaction History Logs */}
-                <View style={styles.historyCard}>
-                    <View style={styles.historyHeader}>
-                        <Text style={styles.historyTitle}>Transaction History</Text>
+                <View style={[styles.historyCard, { backgroundColor: darkMode ? '#0a0a0a' : '#ffffff', borderColor: darkMode ? '#1f1f1f' : '#e2e8f0' }]}>
+                    <View style={[styles.historyHeader, { backgroundColor: darkMode ? '#121212' : '#f8fafc', borderBottomColor: darkMode ? '#1f1f1f' : '#e2e8f0' }]}>
+                        <Text style={[styles.historyTitle, { color: darkMode ? '#ffffff' : '#0f172a' }]}>Transaction History</Text>
                         <TouchableOpacity onPress={clearRecords}>
                             <Text style={styles.clearBtnText}>Clear Records</Text>
                         </TouchableOpacity>
@@ -718,10 +749,10 @@ export default function App() {
                             transactions.map((t, idx) => {
                                 const isIncome = t.mode === 'received_upi' || t.mode === 'received_cash';
                                 return (
-                                    <View key={t.id || idx} style={styles.logItem}>
+                                    <View key={t.id || idx} style={[styles.logItem, { borderBottomColor: darkMode ? '#1f1f1f' : '#e2e8f0' }]}>
                                         <View style={{ flex: 1 }}>
-                                            <Text style={styles.logDesc}>{t.desc}</Text>
-                                            <Text style={[styles.logMeta, isIncome ? styles.incomeText : styles.expenseText]}>
+                                            <Text style={[styles.logDesc, { color: darkMode ? '#ffffff' : '#0f172a' }]}>{t.desc}</Text>
+                                            <Text style={[styles.logMeta, { color: darkMode ? '#a3a3a3' : '#64748b' }]}>
                                                 {t.mode.replace('_', ' ').toUpperCase()} • {t.category}
                                             </Text>
                                         </View>
@@ -734,7 +765,6 @@ export default function App() {
                         )}
                     </View>
                 </View>
-
             </ScrollView>
         </SafeAreaView>
     );
@@ -743,7 +773,7 @@ export default function App() {
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: '#000000',
+        backgroundColor: '#f8fafc',
     },
     container: {
         padding: 16,
@@ -758,7 +788,7 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 24,
         fontWeight: 'bold',
-        color: '#ffffff',
+        color: '#0f172a',
         marginBottom: 4,
     },
     badgeRow: {
@@ -768,8 +798,8 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     badgeAmber: {
-        backgroundColor: '#121212',
-        borderColor: '#262626',
+        backgroundColor: '#f1f5f9',
+        borderColor: '#e2e8f0',
         borderWidth: 1,
         borderRadius: 16,
         paddingHorizontal: 12,
@@ -777,13 +807,13 @@ const styles = StyleSheet.create({
         marginRight: 8,
     },
     badgeAmberText: {
-        color: '#a3a3a3',
+        color: '#475569',
         fontSize: 10,
         fontFamily: 'monospace',
     },
     badgeGreen: {
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        borderColor: '#262626',
+        backgroundColor: 'rgba(37, 99, 235, 0.05)',
+        borderColor: '#e2e8f0',
         borderWidth: 1,
         borderRadius: 16,
         paddingHorizontal: 12,
@@ -792,7 +822,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     badgeGreenText: {
-        color: '#ffffff',
+        color: '#2563eb',
         fontSize: 10,
         fontWeight: 'bold',
     },
@@ -800,32 +830,32 @@ const styles = StyleSheet.create({
         width: 6,
         height: 6,
         borderRadius: 3,
-        backgroundColor: '#ffffff',
+        backgroundColor: '#2563eb',
         marginRight: 6,
     },
     badgeGray: {
-        backgroundColor: '#121212',
-        borderColor: '#262626',
+        backgroundColor: '#f1f5f9',
+        borderColor: '#e2e8f0',
         borderWidth: 1,
         borderRadius: 16,
         paddingHorizontal: 12,
         paddingVertical: 4,
     },
     badgeGrayText: {
-        color: '#a3a3a3',
+        color: '#475569',
         fontSize: 10,
     },
     simulatorCard: {
-        backgroundColor: '#0a0a0a',
+        backgroundColor: '#ffffff',
         borderRadius: 12,
-        borderColor: '#1f1f1f',
+        borderColor: '#e2e8f0',
         borderWidth: 1,
         padding: 16,
-        shadowColor: '#000',
+        shadowColor: '#0f172a',
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
+        shadowOpacity: 0.04,
         shadowRadius: 6,
-        elevation: 5,
+        elevation: 2,
         marginBottom: 24,
     },
     simHeader: {
@@ -834,13 +864,13 @@ const styles = StyleSheet.create({
     simTitle: {
         fontSize: 14,
         fontWeight: 'bold',
-        color: '#ffffff',
+        color: '#0f172a',
         textTransform: 'uppercase',
         letterSpacing: 1,
     },
     simSub: {
         fontSize: 11,
-        color: '#a3a3a3',
+        color: '#64748b',
         marginTop: 2,
     },
     simButtonRow: {
@@ -850,61 +880,61 @@ const styles = StyleSheet.create({
     },
     simBtnDebit: {
         flex: 1,
-        backgroundColor: '#121212',
-        borderColor: '#262626',
+        backgroundColor: '#f8fafc',
+        borderColor: '#e2e8f0',
         borderWidth: 1,
         borderRadius: 6,
         paddingVertical: 8,
         alignItems: 'center',
     },
     simBtnDebitText: {
-        color: '#ffffff',
+        color: '#2563eb',
         fontSize: 11,
         fontWeight: 'bold',
     },
     simBtnCredit: {
         flex: 1,
-        backgroundColor: '#121212',
-        borderColor: '#262626',
+        backgroundColor: '#f8fafc',
+        borderColor: '#e2e8f0',
         borderWidth: 1,
         borderRadius: 6,
         paddingVertical: 8,
         alignItems: 'center',
     },
     simBtnCreditText: {
-        color: '#ffffff',
+        color: '#2563eb',
         fontSize: 11,
         fontWeight: 'bold',
     },
     simTextarea: {
-        backgroundColor: '#000000',
-        borderColor: '#262626',
+        backgroundColor: '#ffffff',
+        borderColor: '#e2e8f0',
         borderWidth: 1,
         borderRadius: 8,
         padding: 10,
         height: 60,
-        color: '#ffffff',
+        color: '#0f172a',
         fontFamily: 'monospace',
         fontSize: 12,
         textAlignVertical: 'top',
         marginBottom: 12,
     },
     simProcessBtn: {
-        backgroundColor: '#ffffff',
-        borderColor: '#ffffff',
+        backgroundColor: '#2563eb',
+        borderColor: '#2563eb',
         borderWidth: 1,
         borderRadius: 8,
         paddingVertical: 10,
         alignItems: 'center',
     },
     simProcessText: {
-        color: '#000000',
+        color: '#ffffff',
         fontSize: 12,
         fontWeight: 'bold',
     },
     budgetCard: {
-        backgroundColor: '#0a0a0a',
-        borderColor: '#1f1f1f',
+        backgroundColor: '#ffffff',
+        borderColor: '#e2e8f0',
         borderWidth: 1,
         borderRadius: 12,
         marginBottom: 24,
@@ -919,30 +949,30 @@ const styles = StyleSheet.create({
     budgetTitle: {
         fontSize: 14,
         fontWeight: '500',
-        color: '#a3a3a3',
+        color: '#475569',
     },
     budgetSub: {
         fontSize: 11,
-        color: '#737373',
+        color: '#94a3b8',
         marginTop: 2,
     },
     budgetToggleBtn: {
-        backgroundColor: '#121212',
-        borderColor: '#262626',
+        backgroundColor: '#f1f5f9',
+        borderColor: '#e2e8f0',
         borderWidth: 1,
         borderRadius: 8,
         paddingHorizontal: 16,
         paddingVertical: 8,
     },
     budgetValueText: {
-        color: '#ffffff',
+        color: '#2563eb',
         fontSize: 12,
         fontWeight: 'bold',
     },
     budgetForm: {
         borderTopWidth: 1,
-        borderTopColor: '#1f1f1f',
-        backgroundColor: '#000000',
+        borderTopColor: '#e2e8f0',
+        backgroundColor: '#f8fafc',
         padding: 16,
     },
     budgetInputsRow: {
@@ -960,33 +990,33 @@ const styles = StyleSheet.create({
     },
     walletCard: {
         flex: 1,
-        backgroundColor: '#0a0a0a',
+        backgroundColor: '#ffffff',
         borderRadius: 16,
         borderWidth: 1,
         padding: 16,
-        shadowColor: '#000',
+        shadowColor: '#0f172a',
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
+        shadowOpacity: 0.04,
         shadowRadius: 6,
-        elevation: 5,
+        elevation: 2,
     },
     cashBorder: {
-        borderColor: '#1f1f1f',
+        borderColor: '#e2e8f0',
     },
     upiBorder: {
-        borderColor: '#1f1f1f',
+        borderColor: '#e2e8f0',
     },
     cashTitle: {
         fontSize: 12,
         fontWeight: 'bold',
-        color: '#ffffff',
+        color: '#1e3a8a',
         letterSpacing: 1,
         marginBottom: 12,
     },
     upiTitle: {
         fontSize: 12,
         fontWeight: 'bold',
-        color: '#ffffff',
+        color: '#1e3a8a',
         letterSpacing: 1,
         marginBottom: 12,
     },
@@ -998,11 +1028,11 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
     },
     walletDetailLabel: {
-        color: '#737373',
+        color: '#64748b',
         fontSize: 12,
     },
     walletDetailVal: {
-        color: '#e5e7eb',
+        color: '#0f172a',
         fontSize: 12,
     },
     spentText: {
@@ -1022,23 +1052,23 @@ const styles = StyleSheet.create({
         paddingTop: 6,
     },
     walletBalanceLabel: {
-        color: '#d1d5db',
+        color: '#475569',
         fontSize: 12,
         fontWeight: '500',
     },
     cashBalance: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: '#ffffff',
+        color: '#0f172a',
     },
     upiBalance: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: '#ffffff',
+        color: '#0f172a',
     },
     breakdownCard: {
-        backgroundColor: '#0a0a0a',
-        borderColor: '#1f1f1f',
+        backgroundColor: '#ffffff',
+        borderColor: '#e2e8f0',
         borderWidth: 1,
         borderRadius: 16,
         padding: 16,
@@ -1047,13 +1077,13 @@ const styles = StyleSheet.create({
     breakdownTitle: {
         fontSize: 14,
         fontWeight: '600',
-        color: '#ffffff',
+        color: '#0f172a',
         letterSpacing: 1,
         marginBottom: 16,
         textTransform: 'uppercase',
     },
     emptyText: {
-        color: '#737373',
+        color: '#94a3b8',
         fontSize: 13,
         textAlign: 'center',
         paddingVertical: 12,
@@ -1091,12 +1121,12 @@ const styles = StyleSheet.create({
         marginRight: 8,
     },
     legendLabel: {
-        color: '#e5e7eb',
+        color: '#0f172a',
         fontSize: 12,
         flex: 1,
     },
     legendValue: {
-        color: '#a3a3a3',
+        color: '#475569',
         fontSize: 11,
         fontWeight: 'bold',
         marginLeft: 8,
@@ -1107,7 +1137,7 @@ const styles = StyleSheet.create({
         height: 120,
     },
     donutEmptyText: {
-        color: '#737373',
+        color: '#94a3b8',
         fontSize: 13,
     },
     progressRow: {
@@ -1119,42 +1149,42 @@ const styles = StyleSheet.create({
         marginBottom: 6,
     },
     progressLabel: {
-        color: '#d1d5db',
+        color: '#475569',
         fontSize: 12,
     },
     progressValue: {
-        color: '#a3a3a3',
+        color: '#475569',
         fontSize: 12,
         fontFamily: 'monospace',
     },
     progressTrack: {
         height: 6,
-        backgroundColor: '#1f2937',
+        backgroundColor: '#f1f5f9',
         borderRadius: 3,
         overflow: 'hidden',
     },
     progressFill: {
         height: '100%',
-        backgroundColor: '#ffffff',
+        backgroundColor: '#2563eb',
         borderRadius: 3,
     },
     formCard: {
-        backgroundColor: '#0a0a0a',
-        borderColor: '#1f1f1f',
+        backgroundColor: '#ffffff',
+        borderColor: '#e2e8f0',
         borderWidth: 1,
         borderRadius: 16,
         padding: 20,
-        shadowColor: '#000',
+        shadowColor: '#0f172a',
         shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.4,
+        shadowOpacity: 0.04,
         shadowRadius: 10,
-        elevation: 8,
+        elevation: 2,
         marginBottom: 24,
     },
     formTitle: {
         fontSize: 16,
         fontWeight: 'bold',
-        color: '#ffffff',
+        color: '#0f172a',
         marginBottom: 16,
     },
     formGroup: {
@@ -1162,39 +1192,39 @@ const styles = StyleSheet.create({
     },
     label: {
         fontSize: 11,
-        color: '#a3a3a3',
+        color: '#475569',
         marginBottom: 6,
         textTransform: 'uppercase',
         letterSpacing: 1,
     },
     input: {
-        backgroundColor: '#000000',
-        borderColor: '#262626',
+        backgroundColor: '#ffffff',
+        borderColor: '#e2e8f0',
         borderWidth: 1,
         borderRadius: 8,
         paddingHorizontal: 12,
         paddingVertical: 8,
-        color: '#ffffff',
+        color: '#0f172a',
         fontSize: 14,
     },
     budgetSaveBtn: {
-        backgroundColor: '#ffffff',
+        backgroundColor: '#2563eb',
         borderRadius: 8,
         paddingVertical: 10,
         alignItems: 'center',
         marginTop: 12,
     },
     budgetSaveText: {
-        color: '#000000',
+        color: '#ffffff',
         fontSize: 12,
         fontWeight: 'bold',
     },
     modeSelector: {
         flexDirection: 'row',
-        backgroundColor: '#000000',
+        backgroundColor: '#ffffff',
         borderRadius: 8,
         padding: 4,
-        borderColor: '#262626',
+        borderColor: '#e2e8f0',
         borderWidth: 1,
     },
     modeOption: {
@@ -1204,14 +1234,14 @@ const styles = StyleSheet.create({
         borderRadius: 6,
     },
     modeSelected: {
-        backgroundColor: '#1c1c1e',
+        backgroundColor: '#f1f5f9',
     },
     modeText: {
-        color: '#737373',
+        color: '#475569',
         fontSize: 12,
     },
     modeSelectedText: {
-        color: '#ffffff',
+        color: '#2563eb',
         fontWeight: 'bold',
     },
     tagsContainer: {
@@ -1221,23 +1251,23 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     tagButton: {
-        backgroundColor: '#000000',
-        borderColor: '#262626',
+        backgroundColor: '#ffffff',
+        borderColor: '#e2e8f0',
         borderWidth: 1,
         borderRadius: 6,
         paddingHorizontal: 10,
         paddingVertical: 6,
     },
     tagSelected: {
-        borderColor: '#ffffff',
-        backgroundColor: '#ffffff',
+        borderColor: '#2563eb',
+        backgroundColor: '#2563eb',
     },
     tagText: {
-        color: '#a3a3a3',
+        color: '#475569',
         fontSize: 11,
     },
     tagSelectedText: {
-        color: '#000000',
+        color: '#ffffff',
         fontWeight: '500',
     },
     customTagRow: {
@@ -1246,15 +1276,15 @@ const styles = StyleSheet.create({
         marginTop: 6,
     },
     customTagAddBtn: {
-        backgroundColor: '#ffffff',
-        borderColor: '#ffffff',
+        backgroundColor: '#2563eb',
+        borderColor: '#2563eb',
         borderWidth: 1,
         borderRadius: 8,
         paddingHorizontal: 16,
         paddingVertical: 10,
     },
     customTagAddText: {
-        color: '#000000',
+        color: '#ffffff',
         fontSize: 12,
         fontWeight: 'bold',
     },
@@ -1267,15 +1297,15 @@ const styles = StyleSheet.create({
     customTagBubble: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#121212',
-        borderColor: '#262626',
+        backgroundColor: '#eff6ff',
+        borderColor: '#dbeafe',
         borderWidth: 1,
         borderRadius: 6,
         paddingHorizontal: 8,
         paddingVertical: 3,
     },
     customTagBubbleText: {
-        color: '#ffffff',
+        color: '#2563eb',
         fontSize: 11,
         marginRight: 4,
     },
@@ -1285,20 +1315,20 @@ const styles = StyleSheet.create({
         fontSize: 12,
     },
     submitBtn: {
-        backgroundColor: '#ffffff',
+        backgroundColor: '#2563eb',
         borderRadius: 8,
         paddingVertical: 12,
         alignItems: 'center',
         marginTop: 8,
     },
     submitText: {
-        color: '#000000',
+        color: '#ffffff',
         fontSize: 14,
         fontWeight: 'bold',
     },
     historyCard: {
-        backgroundColor: '#0a0a0a',
-        borderColor: '#1f1f1f',
+        backgroundColor: '#ffffff',
+        borderColor: '#e2e8f0',
         borderWidth: 1,
         borderRadius: 16,
         overflow: 'hidden',
@@ -1307,15 +1337,15 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         paddingVertical: 16,
         borderBottomWidth: 1,
-        borderBottomColor: '#1f1f1f',
-        backgroundColor: '#121212',
+        borderBottomColor: '#e2e8f0',
+        backgroundColor: '#f8fafc',
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
     },
     historyTitle: {
         fontWeight: '600',
-        color: '#ffffff',
+        color: '#0f172a',
         fontSize: 14,
     },
     clearBtnText: {
@@ -1328,14 +1358,14 @@ const styles = StyleSheet.create({
     emptyLogsText: {
         padding: 24,
         fontSize: 13,
-        color: '#737373',
+        color: '#94a3b8',
         textAlign: 'center',
     },
     logItem: {
         paddingHorizontal: 20,
         paddingVertical: 12,
         borderBottomWidth: 1,
-        borderBottomColor: '#1f1f1f',
+        borderBottomColor: '#e2e8f0',
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
@@ -1343,7 +1373,7 @@ const styles = StyleSheet.create({
     logDesc: {
         fontSize: 13,
         fontWeight: '500',
-        color: '#ffffff',
+        color: '#0f172a',
     },
     logMeta: {
         fontSize: 9,
@@ -1351,10 +1381,10 @@ const styles = StyleSheet.create({
         marginTop: 3,
     },
     incomeText: {
-        color: '#a3a3a3',
+        color: '#64748b',
     },
     expenseText: {
-        color: '#a3a3a3',
+        color: '#64748b',
     },
     logAmount: {
         fontSize: 13,
