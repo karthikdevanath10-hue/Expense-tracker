@@ -324,6 +324,7 @@ export default function App() {
         }
 
         const payload = {
+            id: 'local_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9),
             amount: amt,
             mode: txMode,
             category: txTags.join(', '),
@@ -380,6 +381,46 @@ export default function App() {
                         }
                         await AsyncStorage.removeItem('local_txs').catch(err => console.error(err));
                         Alert.alert("Cleared", "All logs have been wiped.");
+                    }
+                }
+            ]
+        );
+    };
+
+    const deleteTransaction = async (txId: string | undefined, timestamp: number) => {
+        Alert.alert(
+            "Delete Record",
+            "Are you sure you want to delete this record?",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Delete",
+                    style: "destructive",
+                    onPress: async () => {
+                        if (user && db) {
+                            try {
+                                if (txId) {
+                                    await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'transactions', txId));
+                                } else {
+                                    const q = query(collection(db, 'artifacts', appId, 'users', user.uid, 'transactions'));
+                                    const snaps = await getDocs(q);
+                                    snaps.forEach(async (document) => {
+                                        if (document.data().timestamp === timestamp) {
+                                            await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'transactions', document.id));
+                                        }
+                                    });
+                                }
+                            } catch (err) {
+                                console.error("Delete transaction error:", err);
+                                Alert.alert("Error", "Failed to delete record.");
+                            }
+                        } else {
+                            setTransactions(prev => {
+                                const newTxs = prev.filter(t => t.id !== txId && t.timestamp !== timestamp);
+                                AsyncStorage.setItem('local_txs', JSON.stringify(newTxs)).catch(err => console.error(err));
+                                return newTxs;
+                            });
+                        }
                     }
                 }
             ]
@@ -756,9 +797,14 @@ export default function App() {
                                                 {t.mode.replace('_', ' ').toUpperCase()} • {t.category}
                                             </Text>
                                         </View>
-                                        <Text style={[styles.logAmount, isIncome ? styles.logIncome : styles.logExpense]}>
-                                            {isIncome ? '+' : '-'}₹{t.amount}
-                                        </Text>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                                            <Text style={[styles.logAmount, isIncome ? styles.logIncome : styles.logExpense]}>
+                                                {isIncome ? '+' : '-'}₹{t.amount}
+                                            </Text>
+                                            <TouchableOpacity onPress={() => deleteTransaction(t.id, t.timestamp)} style={{ padding: 4 }}>
+                                                <Text style={{ fontSize: 16, color: '#ef4444' }}>🗑️</Text>
+                                            </TouchableOpacity>
+                                        </View>
                                     </View>
                                 );
                             })
