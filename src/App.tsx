@@ -67,7 +67,7 @@ const DonutChart = ({ data }) => {
             `A 1 1 0 ${largeArcFlag} 1 ${endX} ${endY}`
         ].join(' ');
 
-        return { pathData, color: colors[index % colors.length], label, value };
+        return { pathData, color: colors[index % colors.length], label, value, percent };
     });
 
     return (
@@ -82,7 +82,7 @@ const DonutChart = ({ data }) => {
                     <div key={i} className="flex items-center gap-2 text-xs">
                         <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: slice.color }}></span>
                         <span className="text-gray-300 truncate max-w-[110px]">{slice.label}</span>
-                        <span className="text-gray-500 ml-auto font-mono">₹{slice.value.toFixed(0)}</span>
+                        <span className="text-gray-500 ml-auto font-mono">₹{slice.value.toFixed(0)} ({(slice.percent * 100).toFixed(0)}%)</span>
                     </div>
                 ))}
             </div>
@@ -362,13 +362,17 @@ export default function App() {
         );
     };
 
+    const addCustomTag = () => {
+        if (customTag.trim() && !selectedTags.includes(customTag.trim())) {
+            setSelectedTags([...selectedTags, customTag.trim()]);
+        }
+        setCustomTag('');
+    };
+
     const handleCustomTag = (e) => {
         if (e.key === 'Enter') {
             e.preventDefault();
-            if (customTag.trim() && !selectedTags.includes(customTag.trim())) {
-                setSelectedTags([...selectedTags, customTag.trim()]);
-            }
-            setCustomTag('');
+            addCustomTag();
         }
     };
 
@@ -592,21 +596,26 @@ export default function App() {
                                         </button>
                                     ))}
                                 </div>
-                                <div className="w-full bg-gray-900 border border-gray-700 rounded-lg p-2 focus-within:border-cyan-500 transition min-h-[42px] flex flex-wrap gap-1.5 items-center">
-                                    {selectedTags.filter(t => !presetTags.map(pt => pt.label).includes(t)).map(tag => (
-                                        <span key={tag} className="inline-flex items-center gap-1 bg-cyan-950 text-cyan-400 border border-cyan-800 text-xs px-2 py-0.5 rounded-md">
-                                            ✨ {tag}
-                                            <button type="button" onClick={() => toggleTag(tag)} className="hover:text-rose-400 font-bold ml-0.5">×</button>
-                                        </span>
-                                    ))}
-                                    <input
-                                        type="text"
-                                        value={customTag}
-                                        onChange={(e) => setCustomTag(e.target.value)}
-                                        onKeyDown={handleCustomTag}
-                                        className="flex-1 bg-transparent text-sm text-gray-100 focus:outline-none placeholder-gray-600 min-w-[120px]"
-                                        placeholder="Type custom category & press Enter..."
-                                    />
+                                <div className="w-full bg-gray-900 border border-gray-700 rounded-lg p-2 focus-within:border-cyan-500 transition min-h-[42px] flex items-center justify-between">
+                                    <div className="flex flex-wrap gap-1.5 items-center flex-1">
+                                        {selectedTags.filter(t => !presetTags.map(pt => pt.label).includes(t)).map(tag => (
+                                            <span key={tag} className="inline-flex items-center gap-1 bg-cyan-950 text-cyan-400 border border-cyan-800 text-xs px-2 py-0.5 rounded-md">
+                                                ✨ {tag}
+                                                <button type="button" onClick={() => toggleTag(tag)} className="hover:text-rose-400 font-bold ml-0.5">×</button>
+                                            </span>
+                                        ))}
+                                        <input
+                                            type="text"
+                                            value={customTag}
+                                            onChange={(e) => setCustomTag(e.target.value)}
+                                            onKeyDown={handleCustomTag}
+                                            className="flex-1 bg-transparent text-sm text-gray-100 focus:outline-none placeholder-gray-600 min-w-[120px]"
+                                            placeholder="Type custom category..."
+                                        />
+                                    </div>
+                                    <button type="button" onClick={addCustomTag} className="text-xs bg-gray-800 hover:bg-gray-700 text-cyan-400 border border-cyan-800/40 px-3 py-1 rounded transition shrink-0 ml-2">
+                                        Add
+                                    </button>
                                 </div>
                             </div>
 
