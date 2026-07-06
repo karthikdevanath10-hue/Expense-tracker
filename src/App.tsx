@@ -214,23 +214,25 @@ export default function App() {
     let spentCash = 0;
     let spentUpi = 0;
     let receivedUpi = 0;
+    let receivedCash = 0;
     const categoryData = {};
 
     transactions.forEach(t => {
         if (t.mode === 'cash') spentCash += t.amount;
         if (t.mode === 'upi') spentUpi += t.amount;
         if (t.mode === 'received_upi') receivedUpi += t.amount;
+        if (t.mode === 'received_cash') receivedCash += t.amount;
 
         const tags = t.category ? t.category.split(',').map(tag => tag.trim()) : ['Uncategorized'];
         const splitAmount = t.amount / tags.length;
         tags.forEach(tag => {
-            if (t.mode !== 'received_upi') { // Only chart expenses
+            if (t.mode !== 'received_upi' && t.mode !== 'received_cash') { // Only chart expenses
                 categoryData[tag] = (categoryData[tag] || 0) + splitAmount;
             }
         });
     });
 
-    const presentCash = budget.cash - spentCash;
+    const presentCash = budget.cash - spentCash + receivedCash;
     const presentUpi = budget.upi - spentUpi + receivedUpi;
 
     // --- 4. Handlers ---
