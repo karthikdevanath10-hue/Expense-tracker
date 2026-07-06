@@ -38,7 +38,7 @@ const Toast = ({ message, type = 'info', onClose }) => {
 
 // --- Custom SVG Donut Chart (Replacing Canvas to avoid dependencies) ---
 const DonutChart = ({ data }) => {
-    const colors = ['#f87171', '#fb923c', '#fbbf24', '#34d399', '#60a5fa', '#a78bfa', '#22d3ee', '#f472b6', '#c084fc', '#fb7185'];
+    const colors = ['#ffffff', '#f5f5f5', '#e5e5e5', '#d4d4d4', '#a3a3a3', '#737373', '#525252', '#404040', '#262626', '#171717'];
     const total = Object.values(data).reduce((sum, val) => sum + val, 0);
 
     if (total === 0) {
@@ -377,26 +377,26 @@ export default function App() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-900 text-gray-100 font-sans pb-12">
+        <div className="min-h-screen bg-black text-white font-sans pb-12">
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
             {/* Header */}
-            <header className="border-b border-gray-800 bg-gray-900/50 backdrop-blur sticky top-0 z-10">
+            <header className="border-b border-neutral-900 bg-black/80 backdrop-blur sticky top-0 z-10">
                 <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
-                    <h1 className="text-2xl font-bold bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
-                        🚀 CampusSpend <span className="text-xs text-gray-500 font-mono">v4 (Cloud)</span>
+                    <h1 className="text-2xl font-bold text-white">
+                        🚀 CampusSpend <span className="text-xs text-neutral-500 font-mono">v4 (Cloud)</span>
                     </h1>
                     <div className="flex items-center gap-3">
-                        <span className="text-xs bg-gray-800 text-amber-400 px-3 py-1 rounded-full border border-amber-800/40 font-mono">
+                        <span className="text-xs bg-neutral-900 text-neutral-400 px-3 py-1 rounded-full border border-neutral-800 font-mono">
                             💬 SMS Reader Ready
                         </span>
                         {user ? (
-                            <span className="text-xs bg-emerald-950/50 text-emerald-400 px-3 py-1 rounded-full border border-emerald-800/50 flex items-center gap-1.5">
-                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Cloud Sync Active
+                            <span className="text-xs bg-neutral-900 text-neutral-350 px-3 py-1 rounded-full border border-neutral-800 flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-white animate-pulse"></span> Cloud Sync Active
                             </span>
                         ) : (
-                            <span className="text-xs bg-gray-800 text-gray-400 px-3 py-1 rounded-full border border-gray-700 flex items-center gap-1.5">
-                                <span className="w-2 h-2 rounded-full bg-gray-500"></span> Offline Mode (Demo)
+                            <span className="text-xs bg-neutral-900 text-neutral-400 px-3 py-1 rounded-full border border-neutral-800 flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-neutral-600"></span> Offline Mode (Demo)
                             </span>
                         )}
                     </div>
@@ -409,19 +409,19 @@ export default function App() {
                 <div className="lg:col-span-2 space-y-8">
 
                     {/* SMS Simulator Panel */}
-                    <div className="bg-gradient-to-r from-slate-900 to-gray-800 p-5 rounded-xl border border-cyan-500/20 shadow-lg">
+                    <div className="bg-neutral-950 p-5 rounded-xl border border-neutral-900 shadow-lg">
                         <div className="flex justify-between items-center mb-3">
                             <div>
-                                <h3 className="text-sm font-bold text-cyan-400 uppercase tracking-wide">
+                                <h3 className="text-sm font-bold text-white uppercase tracking-wide">
                                     Simulator: Bank Transaction SMS Receiver
                                 </h3>
-                                <p className="text-xs text-gray-400">Paste or test a standard bank message layout below to verify automatic parsing.</p>
+                                <p className="text-xs text-neutral-400">Paste or test a standard bank message layout below to verify automatic parsing.</p>
                             </div>
                             <div className="flex gap-2">
-                                <button onClick={() => simulateSMS('debit')} className="text-[11px] bg-rose-950/40 text-rose-400 border border-rose-900/50 px-2.5 py-1 rounded hover:bg-rose-900/30 transition">
+                                <button onClick={() => simulateSMS('debit')} className="text-[11px] bg-neutral-900 text-white border border-neutral-800 px-2.5 py-1 rounded hover:bg-neutral-800 transition">
                                     ⚡ Simulate Debit
                                 </button>
-                                <button onClick={() => simulateSMS('credit')} className="text-[11px] bg-emerald-950/40 text-emerald-400 border border-emerald-900/50 px-2.5 py-1 rounded hover:bg-emerald-900/30 transition">
+                                <button onClick={() => simulateSMS('credit')} className="text-[11px] bg-neutral-900 text-white border border-neutral-800 px-2.5 py-1 rounded hover:bg-neutral-800 transition">
                                     ⚡ Simulate Credit
                                 </button>
                             </div>
@@ -430,39 +430,39 @@ export default function App() {
                             <textarea
                                 value={smsInput}
                                 onChange={(e) => setSmsInput(e.target.value)}
-                                className="w-full h-16 bg-gray-950 border border-gray-700 rounded-lg p-2.5 text-xs font-mono text-gray-300 focus:outline-none focus:border-cyan-500 resize-none transition-colors"
+                                className="w-full h-16 bg-black border border-neutral-800 rounded-lg p-2.5 text-xs font-mono text-neutral-300 focus:outline-none focus:border-white resize-none transition-colors"
                                 placeholder="Type or paste a notification text (e.g., Rs 250.00 debited via UPI...)"
                             />
-                            <button onClick={() => processRawSMS(smsInput)} className="w-full bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs font-semibold py-2 rounded-lg border border-gray-600 transition">
+                            <button onClick={() => processRawSMS(smsInput)} className="w-full bg-white hover:bg-neutral-200 text-black text-xs font-semibold py-2 rounded-lg transition">
                                 Parse & Run Extract Engine
                             </button>
                         </div>
                     </div>
 
                     {/* Pocket Money Config */}
-                    <div className="bg-gray-800/40 rounded-xl border border-gray-800 overflow-hidden">
+                    <div className="bg-neutral-950 rounded-xl border border-neutral-900 overflow-hidden">
                         <div className="p-4 flex justify-between items-center">
                             <div>
-                                <h3 className="text-sm font-medium text-gray-400">Initialize Monthly Pocket Money</h3>
-                                <p className="text-xs text-gray-500">Sends PUT/POST requests to update base budgets on your server</p>
+                                <h3 className="text-sm font-medium text-neutral-400">Initialize Monthly Pocket Money</h3>
+                                <p className="text-xs text-neutral-500">Sends PUT/POST requests to update base budgets on your server</p>
                             </div>
-                            <button onClick={() => setIsBudgetOpen(!isBudgetOpen)} className="bg-gray-800 hover:bg-gray-700 text-cyan-400 border border-cyan-800/40 font-medium text-sm px-4 py-2 rounded-lg transition">
+                            <button onClick={() => setIsBudgetOpen(!isBudgetOpen)} className="bg-neutral-900 hover:bg-neutral-800 text-white border border-neutral-805 font-medium text-sm px-4 py-2 rounded-lg transition">
                                 Set Pocket Money
                             </button>
                         </div>
 
                         {isBudgetOpen && (
-                            <div className="border-t border-gray-800 bg-gray-900/40 p-4">
+                            <div className="border-t border-neutral-900 bg-black/40 p-4">
                                 <form onSubmit={saveBudget} className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
                                     <div>
-                                        <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Cash Amount (₹)</label>
-                                        <input name="cash" type="number" defaultValue={budget.cash} required min="0" className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-gray-100 focus:outline-none focus:border-cyan-500" />
+                                        <label className="block text-xs text-neutral-400 mb-1.5 uppercase tracking-wide">Cash Amount (₹)</label>
+                                        <input name="cash" type="number" defaultValue={budget.cash} required min="0" className="w-full bg-black border border-neutral-800 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-white" />
                                     </div>
                                     <div>
-                                        <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">UPI Amount (₹)</label>
-                                        <input name="upi" type="number" defaultValue={budget.upi} required min="0" className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-gray-100 focus:outline-none focus:border-cyan-500" />
+                                        <label className="block text-xs text-neutral-400 mb-1.5 uppercase tracking-wide">UPI Amount (₹)</label>
+                                        <input name="upi" type="number" defaultValue={budget.upi} required min="0" className="w-full bg-black border border-neutral-800 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-white" />
                                     </div>
-                                    <button type="submit" className="w-full bg-cyan-500 hover:bg-cyan-600 text-gray-900 font-bold py-1.5 text-sm rounded-lg transition">
+                                    <button type="submit" className="w-full bg-white hover:bg-neutral-200 text-black font-bold py-1.5 text-sm rounded-lg transition">
                                         Save Config
                                     </button>
                                 </form>
@@ -472,80 +472,80 @@ export default function App() {
 
                     {/* Wallet Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="bg-gradient-to-br from-emerald-950/30 to-gray-900 p-6 rounded-2xl border border-emerald-500/20 shadow-xl">
-                            <span className="text-emerald-400 font-bold tracking-wider uppercase text-xs block mb-4">💵 Cash Wallet</span>
+                        <div className="bg-neutral-950 p-6 rounded-2xl border border-neutral-900 shadow-xl">
+                            <span className="text-white font-bold tracking-wider uppercase text-xs block mb-4">💵 Cash Wallet</span>
                             <div className="space-y-3">
-                                <div className="flex justify-between border-b border-gray-800/60 pb-2">
-                                    <span className="text-gray-400 text-sm">Previous Balance:</span>
-                                    <span className="font-medium text-gray-200 font-mono">₹{budget.cash}</span>
+                                <div className="flex justify-between border-b border-neutral-900 pb-2">
+                                    <span className="text-neutral-400 text-sm">Previous Balance:</span>
+                                    <span className="font-medium text-neutral-200 font-mono">₹{budget.cash}</span>
                                 </div>
-                                <div className="flex justify-between border-b border-gray-800/60 pb-2">
-                                    <span className="text-gray-400 text-sm">Total Spent:</span>
+                                <div className="flex justify-between border-b border-neutral-900 pb-2">
+                                    <span className="text-neutral-400 text-sm">Total Spent:</span>
                                     <span className="font-medium text-rose-400 font-mono">₹{spentCash}</span>
                                 </div>
                                 {receivedCash > 0 && (
-                                    <div className="flex justify-between border-b border-gray-800/60 pb-2">
-                                        <span className="text-gray-400 text-sm">Total Received:</span>
+                                    <div className="flex justify-between border-b border-neutral-900 pb-2">
+                                        <span className="text-neutral-400 text-sm">Total Received:</span>
                                         <span className="font-medium text-emerald-400 font-mono">₹{receivedCash}</span>
                                     </div>
                                 )}
                                 <div className="flex justify-between pt-1">
-                                    <span className="text-gray-300 font-medium">Present Balance:</span>
-                                    <span className="text-xl font-bold text-emerald-400 font-mono">₹{presentCash}</span>
+                                    <span className="text-neutral-300 font-medium">Present Balance:</span>
+                                    <span className="text-xl font-bold text-white font-mono">₹{presentCash}</span>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="bg-gradient-to-br from-cyan-950/30 to-gray-900 p-6 rounded-2xl border border-cyan-500/20 shadow-xl">
-                            <span className="text-cyan-400 font-bold tracking-wider uppercase text-xs block mb-4">📱 UPI Wallet</span>
+                        <div className="bg-neutral-950 p-6 rounded-2xl border border-neutral-900 shadow-xl">
+                            <span className="text-white font-bold tracking-wider uppercase text-xs block mb-4">📱 UPI Wallet</span>
                             <div className="space-y-3">
-                                <div className="flex justify-between border-b border-gray-800/60 pb-2">
-                                    <span className="text-gray-400 text-sm">Previous Balance:</span>
-                                    <span className="font-medium text-gray-200 font-mono">₹{budget.upi}</span>
+                                <div className="flex justify-between border-b border-neutral-900 pb-2">
+                                    <span className="text-neutral-400 text-sm">Previous Balance:</span>
+                                    <span className="font-medium text-neutral-200 font-mono">₹{budget.upi}</span>
                                 </div>
-                                <div className="flex justify-between border-b border-gray-800/60 pb-2">
-                                    <span className="text-gray-400 text-sm">Total Spent:</span>
+                                <div className="flex justify-between border-b border-neutral-900 pb-2">
+                                    <span className="text-neutral-400 text-sm">Total Spent:</span>
                                     <span className="font-medium text-rose-400 font-mono">₹{spentUpi}</span>
                                 </div>
                                 {receivedUpi > 0 && (
-                                    <div className="flex justify-between border-b border-gray-800/60 pb-2">
-                                        <span className="text-gray-400 text-sm">Total Received:</span>
+                                    <div className="flex justify-between border-b border-neutral-900 pb-2">
+                                        <span className="text-neutral-400 text-sm">Total Received:</span>
                                         <span className="font-medium text-emerald-400 font-mono">₹{receivedUpi}</span>
                                     </div>
                                 )}
                                 <div className="flex justify-between pt-1">
-                                    <span className="text-gray-300 font-medium">Present Balance:</span>
-                                    <span className="text-xl font-bold text-cyan-400 font-mono">₹{presentUpi}</span>
+                                    <span className="text-neutral-300 font-medium">Present Balance:</span>
+                                    <span className="text-xl font-bold text-white font-mono">₹{presentUpi}</span>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     {/* Spend Breakdown / Analytics */}
-                    <div className="bg-gray-800/30 p-6 rounded-2xl border border-gray-800">
-                        <h3 className="text-sm font-semibold mb-4 text-gray-400 uppercase tracking-wider">Spend Breakdown</h3>
+                    <div className="bg-neutral-950 p-6 rounded-2xl border border-neutral-900">
+                        <h3 className="text-sm font-semibold mb-4 text-neutral-400 uppercase tracking-wider">Spend Breakdown</h3>
                         <div className="h-56 flex justify-center">
                             <DonutChart data={categoryData} />
                         </div>
                     </div>
 
                     {/* Transaction History */}
-                    <div className="bg-gray-800/30 rounded-2xl border border-gray-800 overflow-hidden">
-                        <div className="px-6 py-4 border-b border-gray-800 bg-gray-800/10 flex justify-between items-center">
-                            <h3 className="font-semibold text-gray-200">Transaction History</h3>
+                    <div className="bg-neutral-950 rounded-2xl border border-neutral-900 overflow-hidden">
+                        <div className="px-6 py-4 border-b border-neutral-900 bg-neutral-900/10 flex justify-between items-center">
+                            <h3 className="font-semibold text-white">Transaction History</h3>
                             <button onClick={clearRecords} className="text-xs text-rose-400 hover:underline">Clear Records</button>
                         </div>
-                        <div className="divide-y divide-gray-800 max-h-60 overflow-y-auto custom-scrollbar">
+                        <div className="divide-y divide-neutral-900 max-h-60 overflow-y-auto custom-scrollbar">
                             {transactions.length === 0 ? (
-                                <p className="p-6 text-sm text-center text-gray-500">No records found.</p>
+                                <p className="p-6 text-sm text-center text-neutral-500">No records found.</p>
                             ) : (
                                 transactions.map((t, idx) => {
                                     const isIncome = t.mode === 'received_upi' || t.mode === 'received_cash';
                                     return (
-                                        <div key={t.id || idx} className="px-6 py-3 flex justify-between items-center hover:bg-gray-800/10 transition">
+                                        <div key={t.id || idx} className="px-6 py-3 flex justify-between items-center hover:bg-neutral-900/20 transition">
                                             <div>
-                                                <h4 className="text-sm font-medium text-gray-200">{t.desc}</h4>
-                                                <span className={`text-[10px] uppercase font-bold ${isIncome ? 'text-emerald-400' : 'text-cyan-400'}`}>
+                                                <h4 className="text-sm font-medium text-white">{t.desc}</h4>
+                                                <span className="text-[10px] uppercase font-bold text-neutral-400">
                                                     {t.mode.replace('_', ' ')} • {t.category}
                                                 </span>
                                             </div>
@@ -563,18 +563,18 @@ export default function App() {
 
                 {/* Right Column: Log Spend Entry */}
                 <div className="space-y-6">
-                    <div className="bg-gray-800/70 p-6 rounded-2xl border border-gray-800 shadow-xl sticky top-24">
-                        <h3 className="text-md font-bold mb-4 text-gray-200">📝 Log Spend Entry</h3>
+                    <div className="bg-neutral-950 p-6 rounded-2xl border border-neutral-900 shadow-xl sticky top-24">
+                        <h3 className="text-md font-bold mb-4 text-white">📝 Log Spend Entry</h3>
 
                         <form onSubmit={addTransaction} className="space-y-4">
                             <div>
-                                <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Amount (₹)</label>
-                                <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} required min="1" className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-gray-100 focus:outline-none focus:border-cyan-500" placeholder="0.00" />
+                                <label className="block text-xs text-neutral-400 mb-1.5 uppercase tracking-wide">Amount (₹)</label>
+                                <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} required min="1" className="w-full bg-black border border-neutral-800 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-white" placeholder="0.00" />
                             </div>
 
                             <div>
-                                <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Payment Mode / Type</label>
-                                <select value={mode} onChange={(e) => setMode(e.target.value)} className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-gray-100 focus:outline-none focus:border-cyan-500 appearance-none">
+                                <label className="block text-xs text-neutral-400 mb-1.5 uppercase tracking-wide">Payment Mode / Type</label>
+                                <select value={mode} onChange={(e) => setMode(e.target.value)} className="w-full bg-black border border-neutral-800 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-white appearance-none">
                                     <option value="upi">📱 UPI Transfer (Deducted)</option>
                                     <option value="cash">💵 Hard Cash (Deducted)</option>
                                     <option value="received_upi">💰 Received UPI (Credit)</option>
@@ -583,23 +583,23 @@ export default function App() {
                             </div>
 
                             <div>
-                                <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Categories (Select Multiple)</label>
+                                <label className="block text-xs text-neutral-400 mb-1.5 uppercase tracking-wide">Categories (Select Multiple)</label>
                                 <div className="flex flex-wrap gap-1.5 mb-3">
                                     {presetTags.map(tag => (
                                         <button
                                             type="button"
                                             key={tag.label}
                                             onClick={() => toggleTag(tag.label)}
-                                            className={`text-xs px-2.5 py-1 rounded-md border transition-all ${selectedTags.includes(tag.label) ? 'border-cyan-500 text-cyan-400 bg-cyan-950/20' : 'bg-gray-900 text-gray-300 border-gray-700 hover:border-gray-500'}`}
+                                            className={`text-xs px-2.5 py-1 rounded-md border transition-all ${selectedTags.includes(tag.label) ? 'border-white text-white bg-neutral-900' : 'bg-black text-neutral-400 border-neutral-800 hover:border-neutral-500'}`}
                                         >
                                             {tag.emoji} {tag.label}
                                         </button>
                                     ))}
                                 </div>
-                                <div className="w-full bg-gray-900 border border-gray-700 rounded-lg p-2 focus-within:border-cyan-500 transition min-h-[42px] flex items-center justify-between">
+                                <div className="w-full bg-black border border-neutral-800 rounded-lg p-2 focus-within:border-white transition min-h-[42px] flex items-center justify-between">
                                     <div className="flex flex-wrap gap-1.5 items-center flex-1">
                                         {selectedTags.filter(t => !presetTags.map(pt => pt.label).includes(t)).map(tag => (
-                                            <span key={tag} className="inline-flex items-center gap-1 bg-cyan-950 text-cyan-400 border border-cyan-800 text-xs px-2 py-0.5 rounded-md">
+                                            <span key={tag} className="inline-flex items-center gap-1 bg-neutral-900 text-white border border-neutral-800 text-xs px-2 py-0.5 rounded-md">
                                                 ✨ {tag}
                                                 <button type="button" onClick={() => toggleTag(tag)} className="hover:text-rose-400 font-bold ml-0.5">×</button>
                                             </span>
@@ -609,22 +609,22 @@ export default function App() {
                                             value={customTag}
                                             onChange={(e) => setCustomTag(e.target.value)}
                                             onKeyDown={handleCustomTag}
-                                            className="flex-1 bg-transparent text-sm text-gray-100 focus:outline-none placeholder-gray-600 min-w-[120px]"
+                                            className="flex-1 bg-transparent text-sm text-white focus:outline-none placeholder-neutral-800 min-w-[120px]"
                                             placeholder="Type custom category..."
                                         />
                                     </div>
-                                    <button type="button" onClick={addCustomTag} className="text-xs bg-gray-800 hover:bg-gray-700 text-cyan-400 border border-cyan-800/40 px-3 py-1 rounded transition shrink-0 ml-2">
+                                    <button type="button" onClick={addCustomTag} className="text-xs bg-white hover:bg-neutral-200 text-black px-3 py-1 rounded transition shrink-0 ml-2">
                                         Add
                                     </button>
                                 </div>
                             </div>
 
                             <div>
-                                <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wide">Remarks</label>
-                                <input type="text" value={desc} onChange={(e) => setDesc(e.target.value)} className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-gray-100 focus:outline-none focus:border-cyan-500" placeholder="e.g., Party split with friends" />
+                                <label className="block text-xs text-neutral-400 mb-1.5 uppercase tracking-wide">Remarks</label>
+                                <input type="text" value={desc} onChange={(e) => setDesc(e.target.value)} className="w-full bg-black border border-neutral-800 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-white" placeholder="e.g., Party split with friends" />
                             </div>
 
-                            <button type="submit" className="w-full bg-gradient-to-r from-cyan-500 to-emerald-500 text-gray-900 font-bold py-2.5 rounded-lg transition transform active:scale-95 mt-2">
+                            <button type="submit" className="w-full bg-white hover:bg-neutral-200 text-black font-bold py-2.5 rounded-lg transition transform active:scale-95 mt-2">
                                 Send to Server
                             </button>
                         </form>
@@ -636,9 +636,9 @@ export default function App() {
             <style dangerouslySetInnerHTML={{
                 __html: `
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(31, 41, 55, 0.5); border-radius: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(75, 85, 99, 0.8); border-radius: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(107, 114, 128, 1); }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.5); border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(163, 163, 163, 0.8); border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 1); }
       `}} />
         </div>
     );
