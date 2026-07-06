@@ -38,7 +38,7 @@ const Toast = ({ message, type = 'info', onClose }) => {
 
 // --- Custom SVG Donut Chart (Replacing Canvas to avoid dependencies) ---
 const DonutChart = ({ data }) => {
-    const colors = ['#ffffff', '#f5f5f5', '#e5e5e5', '#d4d4d4', '#a3a3a3', '#737373', '#525252', '#404040', '#262626', '#171717'];
+    const colors = ['#1e3a8a', '#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#0284c7', '#06b6d4', '#0d9488', '#4f46e5', '#312e81'];
     const total = Object.values(data).reduce((sum, val) => sum + val, 0);
 
     if (total === 0) {
@@ -377,26 +377,26 @@ export default function App() {
     };
 
     return (
-        <div className="min-h-screen bg-white text-neutral-900 font-sans pb-12">
+        <div className="min-h-screen bg-slate-50 text-slate-900 font-sans pb-12">
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
             {/* Header */}
-            <header className="border-b border-neutral-200 bg-white/80 backdrop-blur sticky top-0 z-10">
+            <header className="border-b border-slate-200 bg-white/80 backdrop-blur sticky top-0 z-10">
                 <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
-                    <h1 className="text-2xl font-bold text-neutral-900">
-                        🚀 CampusSpend <span className="text-xs text-neutral-500 font-mono">v4 (Cloud)</span>
+                    <h1 className="text-2xl font-bold text-slate-900">
+                        🚀 CampusSpend <span className="text-xs text-slate-500 font-mono">v4 (Cloud)</span>
                     </h1>
                     <div className="flex items-center gap-3">
-                        <span className="text-xs bg-neutral-50 text-neutral-600 px-3 py-1 rounded-full border border-neutral-200 font-mono">
+                        <span className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full border border-slate-200 font-mono">
                             💬 SMS Reader Ready
                         </span>
                         {user ? (
-                            <span className="text-xs bg-neutral-50 text-neutral-700 px-3 py-1 rounded-full border border-neutral-200 flex items-center gap-1.5">
-                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Cloud Sync Active
+                            <span className="text-xs bg-slate-100 text-slate-700 px-3 py-1 rounded-full border border-slate-200 flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span> Cloud Sync Active
                             </span>
                         ) : (
-                            <span className="text-xs bg-neutral-50 text-neutral-500 px-3 py-1 rounded-full border border-neutral-200 flex items-center gap-1.5">
-                                <span className="w-2 h-2 rounded-full bg-neutral-450"></span> Offline Mode (Demo)
+                            <span className="text-xs bg-slate-100 text-slate-500 px-3 py-1 rounded-full border border-slate-200 flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-slate-400"></span> Offline Mode (Demo)
                             </span>
                         )}
                     </div>
@@ -409,19 +409,19 @@ export default function App() {
                 <div className="lg:col-span-2 space-y-8">
 
                     {/* SMS Simulator Panel */}
-                    <div className="bg-white p-5 rounded-xl border border-neutral-200 shadow-sm">
+                    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
                         <div className="flex justify-between items-center mb-3">
                             <div>
-                                <h3 className="text-sm font-bold text-neutral-900 uppercase tracking-wide">
+                                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide">
                                     Simulator: Bank Transaction SMS Receiver
                                 </h3>
-                                <p className="text-xs text-neutral-500">Paste or test a standard bank message layout below to verify automatic parsing.</p>
+                                <p className="text-xs text-slate-500">Paste or test a standard bank message layout below to verify automatic parsing.</p>
                             </div>
                             <div className="flex gap-2">
-                                <button onClick={() => simulateSMS('debit')} className="text-[11px] bg-neutral-50 text-neutral-700 border border-neutral-200 px-2.5 py-1 rounded hover:bg-neutral-100 transition">
+                                <button onClick={() => simulateSMS('debit')} className="text-[11px] bg-slate-100 text-slate-700 border border-slate-200 px-2.5 py-1 rounded hover:bg-slate-200 transition">
                                     ⚡ Simulate Debit
                                 </button>
-                                <button onClick={() => simulateSMS('credit')} className="text-[11px] bg-neutral-50 text-neutral-700 border border-neutral-200 px-2.5 py-1 rounded hover:bg-neutral-100 transition">
+                                <button onClick={() => simulateSMS('credit')} className="text-[11px] bg-slate-100 text-slate-700 border border-slate-200 px-2.5 py-1 rounded hover:bg-slate-200 transition">
                                     ⚡ Simulate Credit
                                 </button>
                             </div>
@@ -430,39 +430,39 @@ export default function App() {
                             <textarea
                                 value={smsInput}
                                 onChange={(e) => setSmsInput(e.target.value)}
-                                className="w-full h-16 bg-white border border-neutral-200 rounded-lg p-2.5 text-xs font-mono text-neutral-800 focus:outline-none focus:border-black resize-none transition-colors"
+                                className="w-full h-16 bg-white border border-slate-200 rounded-lg p-2.5 text-xs font-mono text-slate-800 focus:outline-none focus:border-blue-600 resize-none transition-colors"
                                 placeholder="Type or paste a notification text (e.g., Rs 250.00 debited via UPI...)"
                             />
-                            <button onClick={() => processRawSMS(smsInput)} className="w-full bg-black hover:bg-neutral-800 text-white text-xs font-semibold py-2 rounded-lg transition">
+                            <button onClick={() => processRawSMS(smsInput)} className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold py-2 rounded-lg transition">
                                 Parse & Run Extract Engine
                             </button>
                         </div>
                     </div>
 
                     {/* Pocket Money Config */}
-                    <div className="bg-white rounded-xl border border-neutral-200">
+                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
                         <div className="p-4 flex justify-between items-center">
                             <div>
-                                <h3 className="text-sm font-medium text-neutral-600">Initialize Monthly Pocket Money</h3>
-                                <p className="text-xs text-neutral-500">Sends PUT/POST requests to update base budgets on your server</p>
+                                <h3 className="text-sm font-medium text-slate-600">Initialize Monthly Pocket Money</h3>
+                                <p className="text-xs text-slate-500">Sends PUT/POST requests to update base budgets on your server</p>
                             </div>
-                            <button onClick={() => setIsBudgetOpen(!isBudgetOpen)} className="bg-neutral-50 hover:bg-neutral-100 text-neutral-800 border border-neutral-200 font-medium text-sm px-4 py-2 rounded-lg transition">
+                            <button onClick={() => setIsBudgetOpen(!isBudgetOpen)} className="bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 font-medium text-sm px-4 py-2 rounded-lg transition">
                                 Set Pocket Money
                             </button>
                         </div>
 
                         {isBudgetOpen && (
-                            <div className="border-t border-neutral-200 bg-neutral-50/50 p-4">
+                            <div className="border-t border-slate-200 bg-slate-50/50 p-4">
                                 <form onSubmit={saveBudget} className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
                                     <div>
-                                        <label className="block text-xs text-neutral-500 mb-1.5 uppercase tracking-wide">Cash Amount (₹)</label>
-                                        <input name="cash" type="number" defaultValue={budget.cash} required min="0" className="w-full bg-white border border-neutral-200 rounded-lg px-3 py-1.5 text-sm text-neutral-900 focus:outline-none focus:border-black" />
+                                        <label className="block text-xs text-slate-550 mb-1.5 uppercase tracking-wide">Cash Amount (₹)</label>
+                                        <input name="cash" type="number" defaultValue={budget.cash} required min="0" className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-sm text-slate-900 focus:outline-none focus:border-blue-600" />
                                     </div>
                                     <div>
-                                        <label className="block text-xs text-neutral-500 mb-1.5 uppercase tracking-wide">UPI Amount (₹)</label>
-                                        <input name="upi" type="number" defaultValue={budget.upi} required min="0" className="w-full bg-white border border-neutral-200 rounded-lg px-3 py-1.5 text-sm text-neutral-900 focus:outline-none focus:border-black" />
+                                        <label className="block text-xs text-slate-550 mb-1.5 uppercase tracking-wide">UPI Amount (₹)</label>
+                                        <input name="upi" type="number" defaultValue={budget.upi} required min="0" className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-sm text-slate-900 focus:outline-none focus:border-blue-600" />
                                     </div>
-                                    <button type="submit" className="w-full bg-black hover:bg-neutral-800 text-white font-bold py-1.5 text-sm rounded-lg transition">
+                                    <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-1.5 text-sm rounded-lg transition">
                                         Save Config
                                     </button>
                                 </form>
@@ -472,80 +472,80 @@ export default function App() {
 
                     {/* Wallet Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="bg-white p-6 rounded-2xl border border-neutral-200 shadow-sm">
-                            <span className="text-neutral-900 font-bold tracking-wider uppercase text-xs block mb-4">💵 Cash Wallet</span>
+                        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                            <span className="text-blue-900 font-bold tracking-wider uppercase text-xs block mb-4">💵 Cash Wallet</span>
                             <div className="space-y-3">
-                                <div className="flex justify-between border-b border-neutral-100 pb-2">
-                                    <span className="text-neutral-500 text-sm">Previous Balance:</span>
-                                    <span className="font-medium text-neutral-800 font-mono">₹{budget.cash}</span>
+                                <div className="flex justify-between border-b border-slate-100 pb-2">
+                                    <span className="text-slate-500 text-sm">Previous Balance:</span>
+                                    <span className="font-medium text-slate-800 font-mono">₹{budget.cash}</span>
                                 </div>
-                                <div className="flex justify-between border-b border-neutral-100 pb-2">
-                                    <span className="text-neutral-500 text-sm">Total Spent:</span>
+                                <div className="flex justify-between border-b border-slate-100 pb-2">
+                                    <span className="text-slate-500 text-sm">Total Spent:</span>
                                     <span className="font-medium text-rose-600 font-mono">₹{spentCash}</span>
                                 </div>
                                 {receivedCash > 0 && (
-                                    <div className="flex justify-between border-b border-neutral-100 pb-2">
-                                        <span className="text-neutral-500 text-sm">Total Received:</span>
+                                    <div className="flex justify-between border-b border-slate-100 pb-2">
+                                        <span className="text-slate-500 text-sm">Total Received:</span>
                                         <span className="font-medium text-emerald-600 font-mono">₹{receivedCash}</span>
                                     </div>
                                 )}
                                 <div className="flex justify-between pt-1">
-                                    <span className="text-neutral-600 font-medium">Present Balance:</span>
-                                    <span className="text-xl font-bold text-neutral-900 font-mono">₹{presentCash}</span>
+                                    <span className="text-slate-600 font-medium">Present Balance:</span>
+                                    <span className="text-xl font-bold text-slate-900 font-mono">₹{presentCash}</span>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="bg-white p-6 rounded-2xl border border-neutral-200 shadow-sm">
-                            <span className="text-neutral-900 font-bold tracking-wider uppercase text-xs block mb-4">📱 UPI Wallet</span>
+                        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                            <span className="text-blue-900 font-bold tracking-wider uppercase text-xs block mb-4">📱 UPI Wallet</span>
                             <div className="space-y-3">
-                                <div className="flex justify-between border-b border-neutral-100 pb-2">
-                                    <span className="text-neutral-500 text-sm">Previous Balance:</span>
-                                    <span className="font-medium text-neutral-800 font-mono">₹{budget.upi}</span>
+                                <div className="flex justify-between border-b border-slate-100 pb-2">
+                                    <span className="text-slate-500 text-sm">Previous Balance:</span>
+                                    <span className="font-medium text-slate-800 font-mono">₹{budget.upi}</span>
                                 </div>
-                                <div className="flex justify-between border-b border-neutral-100 pb-2">
-                                    <span className="text-neutral-500 text-sm">Total Spent:</span>
+                                <div className="flex justify-between border-b border-slate-100 pb-2">
+                                    <span className="text-slate-500 text-sm">Total Spent:</span>
                                     <span className="font-medium text-rose-600 font-mono">₹{spentUpi}</span>
                                 </div>
                                 {receivedUpi > 0 && (
-                                    <div className="flex justify-between border-b border-neutral-100 pb-2">
-                                        <span className="text-neutral-500 text-sm">Total Received:</span>
+                                    <div className="flex justify-between border-b border-slate-100 pb-2">
+                                        <span className="text-slate-500 text-sm">Total Received:</span>
                                         <span className="font-medium text-emerald-600 font-mono">₹{receivedUpi}</span>
                                     </div>
                                 )}
                                 <div className="flex justify-between pt-1">
-                                    <span className="text-neutral-600 font-medium">Present Balance:</span>
-                                    <span className="text-xl font-bold text-neutral-900 font-mono">₹{presentUpi}</span>
+                                    <span className="text-slate-600 font-medium">Present Balance:</span>
+                                    <span className="text-xl font-bold text-slate-900 font-mono">₹{presentUpi}</span>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     {/* Spend Breakdown / Analytics */}
-                    <div className="bg-white p-6 rounded-2xl border border-neutral-200 shadow-sm">
-                        <h3 className="text-sm font-semibold mb-4 text-neutral-600 uppercase tracking-wider">Spend Breakdown</h3>
+                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                        <h3 className="text-sm font-semibold mb-4 text-slate-600 uppercase tracking-wider">Spend Breakdown</h3>
                         <div className="h-56 flex justify-center">
                             <DonutChart data={categoryData} />
                         </div>
                     </div>
 
                     {/* Transaction History */}
-                    <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm overflow-hidden">
-                        <div className="px-6 py-4 border-b border-neutral-200 bg-neutral-50/50 flex justify-between items-center">
-                            <h3 className="font-semibold text-neutral-900">Transaction History</h3>
+                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/50 flex justify-between items-center">
+                            <h3 className="font-semibold text-slate-900">Transaction History</h3>
                             <button onClick={clearRecords} className="text-xs text-rose-600 hover:underline">Clear Records</button>
                         </div>
-                        <div className="divide-y divide-neutral-100 max-h-60 overflow-y-auto custom-scrollbar">
+                        <div className="divide-y divide-slate-100 max-h-60 overflow-y-auto custom-scrollbar">
                             {transactions.length === 0 ? (
-                                <p className="p-6 text-sm text-center text-neutral-500">No records found.</p>
+                                <p className="p-6 text-sm text-center text-gray-500">No records found.</p>
                             ) : (
                                 transactions.map((t, idx) => {
                                     const isIncome = t.mode === 'received_upi' || t.mode === 'received_cash';
                                     return (
-                                        <div key={t.id || idx} className="px-6 py-3 flex justify-between items-center hover:bg-neutral-50/50 transition">
+                                        <div key={t.id || idx} className="px-6 py-3 flex justify-between items-center hover:bg-slate-50/50 transition">
                                             <div>
-                                                <h4 className="text-sm font-medium text-neutral-900">{t.desc}</h4>
-                                                <span className="text-[10px] uppercase font-bold text-neutral-500">
+                                                <h4 className="text-sm font-medium text-slate-900">{t.desc}</h4>
+                                                <span className="text-[10px] uppercase font-bold text-slate-500">
                                                     {t.mode.replace('_', ' ')} • {t.category}
                                                 </span>
                                             </div>
@@ -563,18 +563,18 @@ export default function App() {
 
                 {/* Right Column: Log Spend Entry */}
                 <div className="space-y-6">
-                    <div className="bg-white p-6 rounded-2xl border border-neutral-200 shadow-sm sticky top-24">
-                        <h3 className="text-md font-bold mb-4 text-neutral-900">📝 Log Spend Entry</h3>
+                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm sticky top-24">
+                        <h3 className="text-md font-bold mb-4 text-slate-900">📝 Log Spend Entry</h3>
 
                         <form onSubmit={addTransaction} className="space-y-4">
                             <div>
-                                <label className="block text-xs text-neutral-500 mb-1.5 uppercase tracking-wide">Amount (₹)</label>
-                                <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} required min="1" className="w-full bg-white border border-neutral-200 rounded-lg px-4 py-2 text-neutral-900 focus:outline-none focus:border-black" placeholder="0.00" />
+                                <label className="block text-xs text-slate-500 mb-1.5 uppercase tracking-wide">Amount (₹)</label>
+                                <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} required min="1" className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-900 focus:outline-none focus:border-blue-600" placeholder="0.00" />
                             </div>
 
                             <div>
-                                <label className="block text-xs text-neutral-500 mb-1.5 uppercase tracking-wide">Payment Mode / Type</label>
-                                <select value={mode} onChange={(e) => setMode(e.target.value)} className="w-full bg-white border border-neutral-200 rounded-lg px-4 py-2 text-neutral-900 focus:outline-none focus:border-black appearance-none">
+                                <label className="block text-xs text-slate-500 mb-1.5 uppercase tracking-wide">Payment Mode / Type</label>
+                                <select value={mode} onChange={(e) => setMode(e.target.value)} className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-900 focus:outline-none focus:border-blue-600 appearance-none">
                                     <option value="upi">📱 UPI Transfer (Deducted)</option>
                                     <option value="cash">💵 Hard Cash (Deducted)</option>
                                     <option value="received_upi">💰 Received UPI (Credit)</option>
@@ -583,23 +583,23 @@ export default function App() {
                             </div>
 
                             <div>
-                                <label className="block text-xs text-neutral-500 mb-1.5 uppercase tracking-wide">Categories (Select Multiple)</label>
+                                <label className="block text-xs text-slate-500 mb-1.5 uppercase tracking-wide">Categories (Select Multiple)</label>
                                 <div className="flex flex-wrap gap-1.5 mb-3">
                                     {presetTags.map(tag => (
                                         <button
                                             type="button"
                                             key={tag.label}
                                             onClick={() => toggleTag(tag.label)}
-                                            className={`text-xs px-2.5 py-1 rounded-md border transition-all ${selectedTags.includes(tag.label) ? 'border-black text-white bg-black' : 'bg-neutral-50 text-neutral-600 border-neutral-200 hover:border-neutral-400'}`}
+                                            className={`text-xs px-2.5 py-1 rounded-md border transition-all ${selectedTags.includes(tag.label) ? 'border-blue-600 text-white bg-blue-600' : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-slate-350'}`}
                                         >
                                             {tag.emoji} {tag.label}
                                         </button>
                                     ))}
                                 </div>
-                                <div className="w-full bg-white border border-neutral-200 rounded-lg p-2 focus-within:border-black transition min-h-[42px] flex items-center justify-between">
+                                <div className="w-full bg-white border border-slate-200 rounded-lg p-2 focus-within:border-blue-600 transition min-h-[42px] flex items-center justify-between">
                                     <div className="flex flex-wrap gap-1.5 items-center flex-1">
                                         {selectedTags.filter(t => !presetTags.map(pt => pt.label).includes(t)).map(tag => (
-                                            <span key={tag} className="inline-flex items-center gap-1 bg-neutral-100 text-neutral-800 border border-neutral-200 text-xs px-2 py-0.5 rounded-md">
+                                            <span key={tag} className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 border border-blue-100 text-xs px-2 py-0.5 rounded-md">
                                                 ✨ {tag}
                                                 <button type="button" onClick={() => toggleTag(tag)} className="hover:text-rose-600 font-bold ml-0.5">×</button>
                                             </span>
@@ -609,22 +609,22 @@ export default function App() {
                                             value={customTag}
                                             onChange={(e) => setCustomTag(e.target.value)}
                                             onKeyDown={handleCustomTag}
-                                            className="flex-1 bg-transparent text-sm text-neutral-900 focus:outline-none placeholder-neutral-400 min-w-[120px]"
+                                            className="flex-1 bg-transparent text-sm text-slate-900 focus:outline-none placeholder-slate-400 min-w-[120px]"
                                             placeholder="Type custom category..."
                                         />
                                     </div>
-                                    <button type="button" onClick={addCustomTag} className="text-xs bg-black hover:bg-neutral-800 text-white px-3 py-1 rounded transition shrink-0 ml-2">
+                                    <button type="button" onClick={addCustomTag} className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded transition shrink-0 ml-2">
                                         Add
                                     </button>
                                 </div>
                             </div>
 
                             <div>
-                                <label className="block text-xs text-neutral-500 mb-1.5 uppercase tracking-wide">Remarks</label>
-                                <input type="text" value={desc} onChange={(e) => setDesc(e.target.value)} className="w-full bg-white border border-neutral-200 rounded-lg px-4 py-2 text-neutral-900 focus:outline-none focus:border-black" placeholder="e.g., Party split with friends" />
+                                <label className="block text-xs text-slate-500 mb-1.5 uppercase tracking-wide">Remarks</label>
+                                <input type="text" value={desc} onChange={(e) => setDesc(e.target.value)} className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-900 focus:outline-none focus:border-blue-600" placeholder="e.g., Party split with friends" />
                             </div>
 
-                            <button type="submit" className="w-full bg-black hover:bg-neutral-800 text-white font-bold py-2.5 rounded-lg transition transform active:scale-95 mt-2">
+                            <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg transition transform active:scale-95 mt-2">
                                 Send to Server
                             </button>
                         </form>
@@ -636,9 +636,9 @@ export default function App() {
             <style dangerouslySetInnerHTML={{
                 __html: `
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(243, 244, 246, 0.5); border-radius: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(156, 163, 175, 0.8); border-radius: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(75, 85, 99, 1); }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(241, 245, 249, 0.5); border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(203, 213, 225, 0.8); border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(100, 116, 139, 1); }
       `}} />
         </div>
     );
