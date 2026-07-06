@@ -46,7 +46,7 @@ const db = getFirestore(app);
 const appId = 'campus-spend-app';
 
 const DonutChart = ({ data }: { data: { [key: string]: number } }) => {
-    const colors = ['#f87171', '#fb923c', '#fbbf24', '#34d399', '#60a5fa', '#a78bfa', '#22d3ee', '#f472b6', '#c084fc', '#fb7185'];
+    const colors = ['#ffffff', '#f5f5f5', '#e5e5e5', '#d4d4d4', '#a3a3a3', '#737373', '#525252', '#404040', '#262626', '#171717'];
     const total = Object.values(data).reduce((sum, val) => sum + val, 0);
 
     if (total === 0) {
@@ -442,7 +442,7 @@ export default function App() {
 
     return (
         <SafeAreaView style={styles.safeArea}>
-            <StatusBar barStyle="light-content" backgroundColor="#111827" />
+            <StatusBar barStyle="light-content" backgroundColor="#000000" />
             <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
                 
                 {/* Header */}
@@ -743,7 +743,7 @@ export default function App() {
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: '#111827',
+        backgroundColor: '#000000',
     },
     container: {
         padding: 16,
@@ -758,7 +758,7 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 24,
         fontWeight: 'bold',
-        color: '#10b981', // emerald-400
+        color: '#ffffff',
         marginBottom: 4,
     },
     badgeRow: {
@@ -768,8 +768,8 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     badgeAmber: {
-        backgroundColor: '#1f2937',
-        borderColor: 'rgba(217, 119, 6, 0.4)',
+        backgroundColor: '#121212',
+        borderColor: '#262626',
         borderWidth: 1,
         borderRadius: 16,
         paddingHorizontal: 12,
@@ -777,13 +777,13 @@ const styles = StyleSheet.create({
         marginRight: 8,
     },
     badgeAmberText: {
-        color: '#fbbf24',
+        color: '#a3a3a3',
         fontSize: 10,
         fontFamily: 'monospace',
     },
     badgeGreen: {
-        backgroundColor: 'rgba(16, 185, 129, 0.1)',
-        borderColor: 'rgba(16, 185, 129, 0.5)',
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        borderColor: '#262626',
         borderWidth: 1,
         borderRadius: 16,
         paddingHorizontal: 12,
@@ -792,7 +792,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     badgeGreenText: {
-        color: '#34d399',
+        color: '#ffffff',
         fontSize: 10,
         fontWeight: 'bold',
     },
@@ -800,25 +800,25 @@ const styles = StyleSheet.create({
         width: 6,
         height: 6,
         borderRadius: 3,
-        backgroundColor: '#10b981',
+        backgroundColor: '#ffffff',
         marginRight: 6,
     },
     badgeGray: {
-        backgroundColor: '#1f2937',
-        borderColor: '#374151',
+        backgroundColor: '#121212',
+        borderColor: '#262626',
         borderWidth: 1,
         borderRadius: 16,
         paddingHorizontal: 12,
         paddingVertical: 4,
     },
     badgeGrayText: {
-        color: '#9ca3af',
+        color: '#a3a3a3',
         fontSize: 10,
     },
     simulatorCard: {
-        backgroundColor: '#1e293b', // slate-900 / gray-800 mix
+        backgroundColor: '#0a0a0a',
         borderRadius: 12,
-        borderColor: 'rgba(34, 211, 238, 0.2)', // cyan border
+        borderColor: '#1f1f1f',
         borderWidth: 1,
         padding: 16,
         shadowColor: '#000',
@@ -834,13 +834,13 @@ const styles = StyleSheet.create({
     simTitle: {
         fontSize: 14,
         fontWeight: 'bold',
-        color: '#22d3ee', // cyan-400
+        color: '#ffffff',
         textTransform: 'uppercase',
         letterSpacing: 1,
     },
     simSub: {
         fontSize: 11,
-        color: '#9ca3af',
+        color: '#a3a3a3',
         marginTop: 2,
     },
     simButtonRow: {
@@ -850,61 +850,61 @@ const styles = StyleSheet.create({
     },
     simBtnDebit: {
         flex: 1,
-        backgroundColor: 'rgba(159, 18, 57, 0.2)',
-        borderColor: 'rgba(225, 29, 72, 0.5)',
+        backgroundColor: '#121212',
+        borderColor: '#262626',
         borderWidth: 1,
         borderRadius: 6,
         paddingVertical: 8,
         alignItems: 'center',
     },
     simBtnDebitText: {
-        color: '#fb7185',
+        color: '#ffffff',
         fontSize: 11,
         fontWeight: 'bold',
     },
     simBtnCredit: {
         flex: 1,
-        backgroundColor: 'rgba(6, 78, 59, 0.2)',
-        borderColor: 'rgba(16, 185, 129, 0.5)',
+        backgroundColor: '#121212',
+        borderColor: '#262626',
         borderWidth: 1,
         borderRadius: 6,
         paddingVertical: 8,
         alignItems: 'center',
     },
     simBtnCreditText: {
-        color: '#34d399',
+        color: '#ffffff',
         fontSize: 11,
         fontWeight: 'bold',
     },
     simTextarea: {
-        backgroundColor: '#030712', // gray-950
-        borderColor: '#374151',
+        backgroundColor: '#000000',
+        borderColor: '#262626',
         borderWidth: 1,
         borderRadius: 8,
         padding: 10,
         height: 60,
-        color: '#d1d5db',
+        color: '#ffffff',
         fontFamily: 'monospace',
         fontSize: 12,
         textAlignVertical: 'top',
         marginBottom: 12,
     },
     simProcessBtn: {
-        backgroundColor: '#1f2937',
-        borderColor: '#4b5563',
+        backgroundColor: '#ffffff',
+        borderColor: '#ffffff',
         borderWidth: 1,
         borderRadius: 8,
         paddingVertical: 10,
         alignItems: 'center',
     },
     simProcessText: {
-        color: '#e5e7eb',
+        color: '#000000',
         fontSize: 12,
         fontWeight: 'bold',
     },
     budgetCard: {
-        backgroundColor: 'rgba(31, 41, 55, 0.4)',
-        borderColor: '#1f2937',
+        backgroundColor: '#0a0a0a',
+        borderColor: '#1f1f1f',
         borderWidth: 1,
         borderRadius: 12,
         marginBottom: 24,
@@ -919,30 +919,30 @@ const styles = StyleSheet.create({
     budgetTitle: {
         fontSize: 14,
         fontWeight: '500',
-        color: '#9ca3af',
+        color: '#a3a3a3',
     },
     budgetSub: {
         fontSize: 11,
-        color: '#6b7280',
+        color: '#737373',
         marginTop: 2,
     },
     budgetToggleBtn: {
-        backgroundColor: '#1f2937',
-        borderColor: 'rgba(34, 211, 238, 0.4)',
+        backgroundColor: '#121212',
+        borderColor: '#262626',
         borderWidth: 1,
         borderRadius: 8,
         paddingHorizontal: 16,
         paddingVertical: 8,
     },
     budgetValueText: {
-        color: '#22d3ee',
+        color: '#ffffff',
         fontSize: 12,
         fontWeight: 'bold',
     },
     budgetForm: {
         borderTopWidth: 1,
-        borderTopColor: '#1f2937',
-        backgroundColor: 'rgba(17, 24, 39, 0.4)',
+        borderTopColor: '#1f1f1f',
+        backgroundColor: '#000000',
         padding: 16,
     },
     budgetInputsRow: {
@@ -960,7 +960,7 @@ const styles = StyleSheet.create({
     },
     walletCard: {
         flex: 1,
-        backgroundColor: 'rgba(17, 24, 39, 0.3)',
+        backgroundColor: '#0a0a0a',
         borderRadius: 16,
         borderWidth: 1,
         padding: 16,
@@ -971,22 +971,22 @@ const styles = StyleSheet.create({
         elevation: 5,
     },
     cashBorder: {
-        borderColor: 'rgba(16, 185, 129, 0.2)',
+        borderColor: '#1f1f1f',
     },
     upiBorder: {
-        borderColor: 'rgba(34, 211, 238, 0.2)',
+        borderColor: '#1f1f1f',
     },
     cashTitle: {
         fontSize: 12,
         fontWeight: 'bold',
-        color: '#34d399',
+        color: '#ffffff',
         letterSpacing: 1,
         marginBottom: 12,
     },
     upiTitle: {
         fontSize: 12,
         fontWeight: 'bold',
-        color: '#22d3ee',
+        color: '#ffffff',
         letterSpacing: 1,
         marginBottom: 12,
     },
@@ -998,7 +998,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
     },
     walletDetailLabel: {
-        color: '#9ca3af',
+        color: '#737373',
         fontSize: 12,
     },
     walletDetailVal: {
@@ -1006,12 +1006,12 @@ const styles = StyleSheet.create({
         fontSize: 12,
     },
     spentText: {
-        color: '#f87171',
+        color: '#ef4444',
         fontSize: 12,
         fontWeight: 'bold',
     },
     receivedText: {
-        color: '#34d399',
+        color: '#22c55e',
         fontSize: 12,
         fontWeight: 'bold',
     },
@@ -1029,16 +1029,16 @@ const styles = StyleSheet.create({
     cashBalance: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: '#34d399',
+        color: '#ffffff',
     },
     upiBalance: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: '#22d3ee',
+        color: '#ffffff',
     },
     breakdownCard: {
-        backgroundColor: 'rgba(31, 41, 55, 0.3)',
-        borderColor: '#1f2937',
+        backgroundColor: '#0a0a0a',
+        borderColor: '#1f1f1f',
         borderWidth: 1,
         borderRadius: 16,
         padding: 16,
@@ -1047,13 +1047,13 @@ const styles = StyleSheet.create({
     breakdownTitle: {
         fontSize: 14,
         fontWeight: '600',
-        color: '#9ca3af',
+        color: '#ffffff',
         letterSpacing: 1,
         marginBottom: 16,
         textTransform: 'uppercase',
     },
     emptyText: {
-        color: '#6b7280',
+        color: '#737373',
         fontSize: 13,
         textAlign: 'center',
         paddingVertical: 12,
@@ -1091,12 +1091,12 @@ const styles = StyleSheet.create({
         marginRight: 8,
     },
     legendLabel: {
-        color: '#d1d5db',
+        color: '#e5e7eb',
         fontSize: 12,
         flex: 1,
     },
     legendValue: {
-        color: '#9ca3af',
+        color: '#a3a3a3',
         fontSize: 11,
         fontWeight: 'bold',
         marginLeft: 8,
@@ -1107,7 +1107,7 @@ const styles = StyleSheet.create({
         height: 120,
     },
     donutEmptyText: {
-        color: '#6b7280',
+        color: '#737373',
         fontSize: 13,
     },
     progressRow: {
@@ -1123,7 +1123,7 @@ const styles = StyleSheet.create({
         fontSize: 12,
     },
     progressValue: {
-        color: '#9ca3af',
+        color: '#a3a3a3',
         fontSize: 12,
         fontFamily: 'monospace',
     },
@@ -1135,12 +1135,12 @@ const styles = StyleSheet.create({
     },
     progressFill: {
         height: '100%',
-        backgroundColor: '#22d3ee',
+        backgroundColor: '#ffffff',
         borderRadius: 3,
     },
     formCard: {
-        backgroundColor: 'rgba(31, 41, 55, 0.7)',
-        borderColor: '#1f2937',
+        backgroundColor: '#0a0a0a',
+        borderColor: '#1f1f1f',
         borderWidth: 1,
         borderRadius: 16,
         padding: 20,
@@ -1154,7 +1154,7 @@ const styles = StyleSheet.create({
     formTitle: {
         fontSize: 16,
         fontWeight: 'bold',
-        color: '#e5e7eb',
+        color: '#ffffff',
         marginBottom: 16,
     },
     formGroup: {
@@ -1162,39 +1162,39 @@ const styles = StyleSheet.create({
     },
     label: {
         fontSize: 11,
-        color: '#9ca3af',
+        color: '#a3a3a3',
         marginBottom: 6,
         textTransform: 'uppercase',
         letterSpacing: 1,
     },
     input: {
-        backgroundColor: '#111827',
-        borderColor: '#374151',
+        backgroundColor: '#000000',
+        borderColor: '#262626',
         borderWidth: 1,
         borderRadius: 8,
         paddingHorizontal: 12,
         paddingVertical: 8,
-        color: '#f9fafb',
+        color: '#ffffff',
         fontSize: 14,
     },
     budgetSaveBtn: {
-        backgroundColor: '#22d3ee',
+        backgroundColor: '#ffffff',
         borderRadius: 8,
         paddingVertical: 10,
         alignItems: 'center',
         marginTop: 12,
     },
     budgetSaveText: {
-        color: '#111827',
+        color: '#000000',
         fontSize: 12,
         fontWeight: 'bold',
     },
     modeSelector: {
         flexDirection: 'row',
-        backgroundColor: '#111827',
+        backgroundColor: '#000000',
         borderRadius: 8,
         padding: 4,
-        borderColor: '#374151',
+        borderColor: '#262626',
         borderWidth: 1,
     },
     modeOption: {
@@ -1204,14 +1204,14 @@ const styles = StyleSheet.create({
         borderRadius: 6,
     },
     modeSelected: {
-        backgroundColor: '#1f2937',
+        backgroundColor: '#1c1c1e',
     },
     modeText: {
-        color: '#9ca3af',
+        color: '#737373',
         fontSize: 12,
     },
     modeSelectedText: {
-        color: '#22d3ee',
+        color: '#ffffff',
         fontWeight: 'bold',
     },
     tagsContainer: {
@@ -1221,23 +1221,23 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     tagButton: {
-        backgroundColor: '#111827',
-        borderColor: '#374151',
+        backgroundColor: '#000000',
+        borderColor: '#262626',
         borderWidth: 1,
         borderRadius: 6,
         paddingHorizontal: 10,
         paddingVertical: 6,
     },
     tagSelected: {
-        borderColor: '#22d3ee',
-        backgroundColor: 'rgba(34, 211, 238, 0.1)',
+        borderColor: '#ffffff',
+        backgroundColor: '#ffffff',
     },
     tagText: {
-        color: '#d1d5db',
+        color: '#a3a3a3',
         fontSize: 11,
     },
     tagSelectedText: {
-        color: '#22d3ee',
+        color: '#000000',
         fontWeight: '500',
     },
     customTagRow: {
@@ -1246,15 +1246,15 @@ const styles = StyleSheet.create({
         marginTop: 6,
     },
     customTagAddBtn: {
-        backgroundColor: '#1f2937',
-        borderColor: '#374151',
+        backgroundColor: '#ffffff',
+        borderColor: '#ffffff',
         borderWidth: 1,
         borderRadius: 8,
         paddingHorizontal: 16,
         paddingVertical: 10,
     },
     customTagAddText: {
-        color: '#22d3ee',
+        color: '#000000',
         fontSize: 12,
         fontWeight: 'bold',
     },
@@ -1267,38 +1267,38 @@ const styles = StyleSheet.create({
     customTagBubble: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(34, 211, 238, 0.15)',
-        borderColor: 'rgba(34, 211, 238, 0.4)',
+        backgroundColor: '#121212',
+        borderColor: '#262626',
         borderWidth: 1,
         borderRadius: 6,
         paddingHorizontal: 8,
         paddingVertical: 3,
     },
     customTagBubbleText: {
-        color: '#22d3ee',
+        color: '#ffffff',
         fontSize: 11,
         marginRight: 4,
     },
     customTagBubbleClose: {
-        color: '#f87171',
+        color: '#ef4444',
         fontWeight: 'bold',
         fontSize: 12,
     },
     submitBtn: {
-        backgroundColor: '#10b981',
+        backgroundColor: '#ffffff',
         borderRadius: 8,
         paddingVertical: 12,
         alignItems: 'center',
         marginTop: 8,
     },
     submitText: {
-        color: '#111827',
+        color: '#000000',
         fontSize: 14,
         fontWeight: 'bold',
     },
     historyCard: {
-        backgroundColor: 'rgba(31, 41, 55, 0.3)',
-        borderColor: '#1f2937',
+        backgroundColor: '#0a0a0a',
+        borderColor: '#1f1f1f',
         borderWidth: 1,
         borderRadius: 16,
         overflow: 'hidden',
@@ -1307,20 +1307,20 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         paddingVertical: 16,
         borderBottomWidth: 1,
-        borderBottomColor: '#1f2937',
-        backgroundColor: 'rgba(31, 41, 55, 0.1)',
+        borderBottomColor: '#1f1f1f',
+        backgroundColor: '#121212',
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
     },
     historyTitle: {
         fontWeight: '600',
-        color: '#e5e7eb',
+        color: '#ffffff',
         fontSize: 14,
     },
     clearBtnText: {
         fontSize: 12,
-        color: '#f87171',
+        color: '#ef4444',
     },
     logsList: {
         maxHeight: 280,
@@ -1328,14 +1328,14 @@ const styles = StyleSheet.create({
     emptyLogsText: {
         padding: 24,
         fontSize: 13,
-        color: '#6b7280',
+        color: '#737373',
         textAlign: 'center',
     },
     logItem: {
         paddingHorizontal: 20,
         paddingVertical: 12,
         borderBottomWidth: 1,
-        borderBottomColor: '#1f2937',
+        borderBottomColor: '#1f1f1f',
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
@@ -1343,7 +1343,7 @@ const styles = StyleSheet.create({
     logDesc: {
         fontSize: 13,
         fontWeight: '500',
-        color: '#e5e7eb',
+        color: '#ffffff',
     },
     logMeta: {
         fontSize: 9,
@@ -1351,10 +1351,10 @@ const styles = StyleSheet.create({
         marginTop: 3,
     },
     incomeText: {
-        color: '#34d399',
+        color: '#a3a3a3',
     },
     expenseText: {
-        color: '#22d3ee',
+        color: '#a3a3a3',
     },
     logAmount: {
         fontSize: 13,
@@ -1362,9 +1362,9 @@ const styles = StyleSheet.create({
         fontFamily: 'monospace',
     },
     logIncome: {
-        color: '#34d399',
+        color: '#22c55e',
     },
     logExpense: {
-        color: '#fb7185',
+        color: '#ef4444',
     },
 });
