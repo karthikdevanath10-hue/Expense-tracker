@@ -37,13 +37,13 @@ const Toast = ({ message, type = 'info', onClose }) => {
 };
 
 // --- Custom SVG Donut Chart (Replacing Canvas to avoid dependencies) ---
-const DonutChart = ({ data }) => {
+const DonutChart = ({ data, darkMode }) => {
     const colors = ['#1e3a8a', '#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#0284c7', '#06b6d4', '#0d9488', '#4f46e5', '#312e81'];
     const total = Object.values(data).reduce((sum, val) => sum + val, 0);
 
     if (total === 0) {
         return (
-            <div className="flex items-center justify-center h-full w-full text-gray-500 text-sm">
+            <div className={`flex items-center justify-center h-full w-full text-sm ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
                 No expense data yet
             </div>
         );
@@ -81,8 +81,8 @@ const DonutChart = ({ data }) => {
                 {slices.map((slice, i) => (
                     <div key={i} className="flex items-center gap-2 text-xs">
                         <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: slice.color }}></span>
-                        <span className="text-gray-300 truncate max-w-[110px]">{slice.label}</span>
-                        <span className="text-gray-500 ml-auto font-mono">₹{slice.value.toFixed(0)} ({(slice.percent * 100).toFixed(0)}%)</span>
+                        <span className={`truncate max-w-[110px] ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>{slice.label}</span>
+                        <span className={`ml-auto font-mono ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>₹{slice.value.toFixed(0)} ({(slice.percent * 100).toFixed(0)}%)</span>
                     </div>
                 ))}
             </div>
@@ -100,6 +100,14 @@ export default function App() {
     // UI States
     const [isBudgetOpen, setIsBudgetOpen] = useState(false);
     const [smsInput, setSmsInput] = useState('');
+    const [darkMode, setDarkMode] = useState(() => {
+        const saved = localStorage.getItem('theme_dark');
+        return saved === 'true' || (saved === null && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    });
+
+    useEffect(() => {
+        localStorage.setItem('theme_dark', darkMode.toString());
+    }, [darkMode]);
 
     // Form States
     const [amount, setAmount] = useState('');
@@ -377,26 +385,37 @@ export default function App() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 text-slate-900 font-sans pb-12">
+        <div className={`min-h-screen font-sans pb-12 transition-colors duration-300 ${darkMode ? 'bg-black text-white' : 'bg-slate-50 text-slate-900'}`}>
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
             {/* Header */}
-            <header className="border-b border-slate-200 bg-white/80 backdrop-blur sticky top-0 z-10">
+            <header className={`border-b sticky top-0 z-10 backdrop-blur transition-colors duration-300 ${darkMode ? 'border-neutral-900 bg-black/80' : 'border-slate-200 bg-white/80'}`}>
                 <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
-                    <h1 className="text-2xl font-bold text-slate-900">
+                    <h1 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>
                         🚀 CampusSpend <span className="text-xs text-slate-500 font-mono">v4 (Cloud)</span>
                     </h1>
                     <div className="flex items-center gap-3">
-                        <span className="text-xs bg-slate-100 text-slate-600 px-3 py-1 rounded-full border border-slate-200 font-mono">
+                        <button
+                            onClick={() => setDarkMode(!darkMode)}
+                            className={`p-2 rounded-full border transition-all ${
+                                darkMode
+                                    ? 'bg-neutral-900 border-neutral-800 text-amber-400 hover:bg-neutral-800'
+                                    : 'bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200'
+                            }`}
+                            title="Toggle dark mode"
+                        >
+                            {darkMode ? '☀️' : '🌙'}
+                        </button>
+                        <span className={`text-xs px-3 py-1 rounded-full border font-mono ${darkMode ? 'bg-neutral-900 text-neutral-400 border-neutral-800' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
                             💬 SMS Reader Ready
                         </span>
                         {user ? (
-                            <span className="text-xs bg-slate-100 text-slate-700 px-3 py-1 rounded-full border border-slate-200 flex items-center gap-1.5">
+                            <span className={`text-xs px-3 py-1 rounded-full border flex items-center gap-1.5 ${darkMode ? 'bg-neutral-900 text-neutral-350 border-neutral-800' : 'bg-slate-100 text-slate-700 border-slate-200'}`}>
                                 <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span> Cloud Sync Active
                             </span>
                         ) : (
-                            <span className="text-xs bg-slate-100 text-slate-500 px-3 py-1 rounded-full border border-slate-200 flex items-center gap-1.5">
-                                <span className="w-2 h-2 rounded-full bg-slate-400"></span> Offline Mode (Demo)
+                            <span className={`text-xs px-3 py-1 rounded-full border flex items-center gap-1.5 ${darkMode ? 'bg-neutral-900 text-neutral-400 border-neutral-800' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
+                                <span className={`w-2 h-2 rounded-full ${darkMode ? 'bg-neutral-600' : 'bg-slate-400'}`}></span> Offline Mode (Demo)
                             </span>
                         )}
                     </div>
@@ -409,19 +428,19 @@ export default function App() {
                 <div className="lg:col-span-2 space-y-8">
 
                     {/* SMS Simulator Panel */}
-                    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                    <div className={`p-5 rounded-xl border shadow-sm transition-colors duration-300 ${darkMode ? 'bg-neutral-950 border-neutral-900 shadow-xl' : 'bg-white border-slate-200'}`}>
                         <div className="flex justify-between items-center mb-3">
                             <div>
-                                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide">
+                                <h3 className={`text-sm font-bold uppercase tracking-wide ${darkMode ? 'text-white' : 'text-slate-900'}`}>
                                     Simulator: Bank Transaction SMS Receiver
                                 </h3>
-                                <p className="text-xs text-slate-500">Paste or test a standard bank message layout below to verify automatic parsing.</p>
+                                <p className={`text-xs ${darkMode ? 'text-neutral-400' : 'text-slate-500'}`}>Paste or test a standard bank message layout below to verify automatic parsing.</p>
                             </div>
                             <div className="flex gap-2">
-                                <button onClick={() => simulateSMS('debit')} className="text-[11px] bg-slate-100 text-slate-700 border border-slate-200 px-2.5 py-1 rounded hover:bg-slate-200 transition">
+                                <button onClick={() => simulateSMS('debit')} className={`text-[11px] border px-2.5 py-1 rounded transition ${darkMode ? 'bg-neutral-900 text-white border-neutral-800 hover:bg-neutral-800' : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'}`}>
                                     ⚡ Simulate Debit
                                 </button>
-                                <button onClick={() => simulateSMS('credit')} className="text-[11px] bg-slate-100 text-slate-700 border border-slate-200 px-2.5 py-1 rounded hover:bg-slate-200 transition">
+                                <button onClick={() => simulateSMS('credit')} className={`text-[11px] border px-2.5 py-1 rounded transition ${darkMode ? 'bg-neutral-900 text-white border-neutral-800 hover:bg-neutral-800' : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'}`}>
                                     ⚡ Simulate Credit
                                 </button>
                             </div>
@@ -430,39 +449,39 @@ export default function App() {
                             <textarea
                                 value={smsInput}
                                 onChange={(e) => setSmsInput(e.target.value)}
-                                className="w-full h-16 bg-white border border-slate-200 rounded-lg p-2.5 text-xs font-mono text-slate-800 focus:outline-none focus:border-blue-600 resize-none transition-colors"
+                                className={`w-full h-16 border rounded-lg p-2.5 text-xs font-mono resize-none transition-colors duration-300 focus:outline-none ${darkMode ? 'bg-black border-neutral-800 text-white focus:border-white' : 'bg-white border-slate-200 text-slate-805 focus:border-blue-600'}`}
                                 placeholder="Type or paste a notification text (e.g., Rs 250.00 debited via UPI...)"
                             />
-                            <button onClick={() => processRawSMS(smsInput)} className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold py-2 rounded-lg transition">
+                            <button onClick={() => processRawSMS(smsInput)} className={`w-full text-xs font-semibold py-2 rounded-lg transition ${darkMode ? 'bg-white hover:bg-neutral-200 text-black' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}>
                                 Parse & Run Extract Engine
                             </button>
                         </div>
                     </div>
 
                     {/* Pocket Money Config */}
-                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+                    <div className={`rounded-xl border shadow-sm transition-colors duration-300 ${darkMode ? 'bg-neutral-950 border-neutral-900 shadow-xl' : 'bg-white border-slate-200'}`}>
                         <div className="p-4 flex justify-between items-center">
                             <div>
-                                <h3 className="text-sm font-medium text-slate-600">Initialize Monthly Pocket Money</h3>
+                                <h3 className={`text-sm font-medium ${darkMode ? 'text-neutral-400' : 'text-slate-600'}`}>Initialize Monthly Pocket Money</h3>
                                 <p className="text-xs text-slate-500">Sends PUT/POST requests to update base budgets on your server</p>
                             </div>
-                            <button onClick={() => setIsBudgetOpen(!isBudgetOpen)} className="bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 font-medium text-sm px-4 py-2 rounded-lg transition">
+                            <button onClick={() => setIsBudgetOpen(!isBudgetOpen)} className={`border font-medium text-sm px-4 py-2 rounded-lg transition ${darkMode ? 'bg-neutral-900 hover:bg-neutral-800 text-white border-neutral-800' : 'bg-slate-100 hover:bg-slate-200 text-slate-808 border-slate-200'}`}>
                                 Set Pocket Money
                             </button>
                         </div>
 
                         {isBudgetOpen && (
-                            <div className="border-t border-slate-200 bg-slate-50/50 p-4">
+                            <div className={`border-t p-4 transition-colors duration-300 ${darkMode ? 'border-neutral-900 bg-black/40' : 'border-slate-200 bg-slate-50/50'}`}>
                                 <form onSubmit={saveBudget} className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
                                     <div>
-                                        <label className="block text-xs text-slate-550 mb-1.5 uppercase tracking-wide">Cash Amount (₹)</label>
-                                        <input name="cash" type="number" defaultValue={budget.cash} required min="0" className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-sm text-slate-900 focus:outline-none focus:border-blue-600" />
+                                        <label className={`block text-xs mb-1.5 uppercase tracking-wide ${darkMode ? 'text-neutral-400' : 'text-slate-550'}`}>Cash Amount (₹)</label>
+                                        <input name="cash" type="number" defaultValue={budget.cash} required min="0" className={`w-full border rounded-lg px-3 py-1.5 text-sm focus:outline-none transition-colors duration-300 ${darkMode ? 'bg-black border-neutral-800 text-white focus:border-white' : 'bg-white border-slate-200 text-slate-900 focus:border-blue-600'}`} />
                                     </div>
                                     <div>
-                                        <label className="block text-xs text-slate-550 mb-1.5 uppercase tracking-wide">UPI Amount (₹)</label>
-                                        <input name="upi" type="number" defaultValue={budget.upi} required min="0" className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-sm text-slate-900 focus:outline-none focus:border-blue-600" />
+                                        <label className={`block text-xs mb-1.5 uppercase tracking-wide ${darkMode ? 'text-neutral-400' : 'text-slate-550'}`}>UPI Amount (₹)</label>
+                                        <input name="upi" type="number" defaultValue={budget.upi} required min="0" className={`w-full border rounded-lg px-3 py-1.5 text-sm focus:outline-none transition-colors duration-300 ${darkMode ? 'bg-black border-neutral-800 text-white focus:border-white' : 'bg-white border-slate-200 text-slate-900 focus:border-blue-600'}`} />
                                     </div>
-                                    <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-1.5 text-sm rounded-lg transition">
+                                    <button type="submit" className={`w-full font-bold py-1.5 text-sm rounded-lg transition ${darkMode ? 'bg-white hover:bg-neutral-200 text-black' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}>
                                         Save Config
                                     </button>
                                 </form>
@@ -472,80 +491,80 @@ export default function App() {
 
                     {/* Wallet Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                            <span className="text-blue-900 font-bold tracking-wider uppercase text-xs block mb-4">💵 Cash Wallet</span>
+                        <div className={`p-6 rounded-2xl border shadow-sm transition-colors duration-300 ${darkMode ? 'bg-neutral-950 border-neutral-900 shadow-xl' : 'bg-white border-slate-200'}`}>
+                            <span className={`font-bold tracking-wider uppercase text-xs block mb-4 ${darkMode ? 'text-white' : 'text-blue-900'}`}>💵 Cash Wallet</span>
                             <div className="space-y-3">
-                                <div className="flex justify-between border-b border-slate-100 pb-2">
-                                    <span className="text-slate-500 text-sm">Previous Balance:</span>
-                                    <span className="font-medium text-slate-800 font-mono">₹{budget.cash}</span>
+                                <div className={`flex justify-between border-b pb-2 ${darkMode ? 'border-neutral-900' : 'border-slate-100'}`}>
+                                    <span className={`text-sm ${darkMode ? 'text-neutral-450' : 'text-slate-500'}`}>Previous Balance:</span>
+                                    <span className={`font-medium font-mono ${darkMode ? 'text-neutral-200' : 'text-slate-800'}`}>₹{budget.cash}</span>
                                 </div>
-                                <div className="flex justify-between border-b border-slate-100 pb-2">
-                                    <span className="text-slate-500 text-sm">Total Spent:</span>
+                                <div className={`flex justify-between border-b pb-2 ${darkMode ? 'border-neutral-900' : 'border-slate-100'}`}>
+                                    <span className={`text-sm ${darkMode ? 'text-neutral-450' : 'text-slate-500'}`}>Total Spent:</span>
                                     <span className="font-medium text-rose-600 font-mono">₹{spentCash}</span>
                                 </div>
                                 {receivedCash > 0 && (
-                                    <div className="flex justify-between border-b border-slate-100 pb-2">
-                                        <span className="text-slate-500 text-sm">Total Received:</span>
+                                    <div className={`flex justify-between border-b pb-2 ${darkMode ? 'border-neutral-900' : 'border-slate-100'}`}>
+                                        <span className={`text-sm ${darkMode ? 'text-neutral-450' : 'text-slate-500'}`}>Total Received:</span>
                                         <span className="font-medium text-emerald-600 font-mono">₹{receivedCash}</span>
                                     </div>
                                 )}
                                 <div className="flex justify-between pt-1">
-                                    <span className="text-slate-600 font-medium">Present Balance:</span>
-                                    <span className="text-xl font-bold text-slate-900 font-mono">₹{presentCash}</span>
+                                    <span className={`font-medium ${darkMode ? 'text-neutral-300' : 'text-slate-600'}`}>Present Balance:</span>
+                                    <span className={`text-xl font-bold font-mono ${darkMode ? 'text-white' : 'text-slate-900'}`}>₹{presentCash}</span>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                            <span className="text-blue-900 font-bold tracking-wider uppercase text-xs block mb-4">📱 UPI Wallet</span>
+                        <div className={`p-6 rounded-2xl border shadow-sm transition-colors duration-300 ${darkMode ? 'bg-neutral-950 border-neutral-900 shadow-xl' : 'bg-white border-slate-200'}`}>
+                            <span className={`font-bold tracking-wider uppercase text-xs block mb-4 ${darkMode ? 'text-white' : 'text-blue-900'}`}>📱 UPI Wallet</span>
                             <div className="space-y-3">
-                                <div className="flex justify-between border-b border-slate-100 pb-2">
-                                    <span className="text-slate-500 text-sm">Previous Balance:</span>
-                                    <span className="font-medium text-slate-800 font-mono">₹{budget.upi}</span>
+                                <div className={`flex justify-between border-b pb-2 ${darkMode ? 'border-neutral-900' : 'border-slate-100'}`}>
+                                    <span className={`text-sm ${darkMode ? 'text-neutral-450' : 'text-slate-500'}`}>Previous Balance:</span>
+                                    <span className={`font-medium font-mono ${darkMode ? 'text-neutral-200' : 'text-slate-800'}`}>₹{budget.upi}</span>
                                 </div>
-                                <div className="flex justify-between border-b border-slate-100 pb-2">
-                                    <span className="text-slate-500 text-sm">Total Spent:</span>
+                                <div className={`flex justify-between border-b pb-2 ${darkMode ? 'border-neutral-900' : 'border-slate-100'}`}>
+                                    <span className={`text-sm ${darkMode ? 'text-neutral-450' : 'text-slate-500'}`}>Total Spent:</span>
                                     <span className="font-medium text-rose-600 font-mono">₹{spentUpi}</span>
                                 </div>
                                 {receivedUpi > 0 && (
-                                    <div className="flex justify-between border-b border-slate-100 pb-2">
-                                        <span className="text-slate-500 text-sm">Total Received:</span>
+                                    <div className={`flex justify-between border-b pb-2 ${darkMode ? 'border-neutral-900' : 'border-slate-100'}`}>
+                                        <span className={`text-sm ${darkMode ? 'text-neutral-450' : 'text-slate-500'}`}>Total Received:</span>
                                         <span className="font-medium text-emerald-600 font-mono">₹{receivedUpi}</span>
                                     </div>
                                 )}
                                 <div className="flex justify-between pt-1">
-                                    <span className="text-slate-600 font-medium">Present Balance:</span>
-                                    <span className="text-xl font-bold text-slate-900 font-mono">₹{presentUpi}</span>
+                                    <span className={`font-medium ${darkMode ? 'text-neutral-300' : 'text-slate-600'}`}>Present Balance:</span>
+                                    <span className={`text-xl font-bold font-mono ${darkMode ? 'text-white' : 'text-slate-900'}`}>₹{presentUpi}</span>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     {/* Spend Breakdown / Analytics */}
-                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                        <h3 className="text-sm font-semibold mb-4 text-slate-600 uppercase tracking-wider">Spend Breakdown</h3>
+                    <div className={`p-6 rounded-2xl border shadow-sm transition-colors duration-300 ${darkMode ? 'bg-neutral-950 border-neutral-900' : 'bg-white border-slate-200'}`}>
+                        <h3 className={`text-sm font-semibold mb-4 uppercase tracking-wider ${darkMode ? 'text-neutral-400' : 'text-slate-650'}`}>Spend Breakdown</h3>
                         <div className="h-56 flex justify-center">
-                            <DonutChart data={categoryData} />
+                            <DonutChart data={categoryData} darkMode={darkMode} />
                         </div>
                     </div>
 
                     {/* Transaction History */}
-                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                        <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/50 flex justify-between items-center">
-                            <h3 className="font-semibold text-slate-900">Transaction History</h3>
+                    <div className={`rounded-2xl border shadow-sm overflow-hidden transition-colors duration-300 ${darkMode ? 'bg-neutral-950 border-neutral-900' : 'bg-white border-slate-200'}`}>
+                        <div className={`px-6 py-4 border-b transition-colors duration-300 ${darkMode ? 'border-neutral-900 bg-neutral-900/10' : 'border-slate-200 bg-slate-50/50'}`}>
+                            <h3 className={`font-semibold ${darkMode ? 'text-white' : 'text-slate-900'}`}>Transaction History</h3>
                             <button onClick={clearRecords} className="text-xs text-rose-600 hover:underline">Clear Records</button>
                         </div>
-                        <div className="divide-y divide-slate-100 max-h-60 overflow-y-auto custom-scrollbar">
+                        <div className={`divide-y max-h-60 overflow-y-auto custom-scrollbar ${darkMode ? 'divide-neutral-900' : 'divide-slate-100'}`}>
                             {transactions.length === 0 ? (
                                 <p className="p-6 text-sm text-center text-gray-500">No records found.</p>
                             ) : (
                                 transactions.map((t, idx) => {
                                     const isIncome = t.mode === 'received_upi' || t.mode === 'received_cash';
                                     return (
-                                        <div key={t.id || idx} className="px-6 py-3 flex justify-between items-center hover:bg-slate-50/50 transition">
+                                        <div key={t.id || idx} className={`px-6 py-3 flex justify-between items-center transition ${darkMode ? 'hover:bg-neutral-900/20' : 'hover:bg-slate-50/50'}`}>
                                             <div>
-                                                <h4 className="text-sm font-medium text-slate-900">{t.desc}</h4>
-                                                <span className="text-[10px] uppercase font-bold text-slate-500">
+                                                <h4 className={`text-sm font-medium ${darkMode ? 'text-white' : 'text-slate-900'}`}>{t.desc}</h4>
+                                                <span className={`text-[10px] uppercase font-bold ${darkMode ? 'text-neutral-450' : 'text-slate-500'}`}>
                                                     {t.mode.replace('_', ' ')} • {t.category}
                                                 </span>
                                             </div>
@@ -563,18 +582,18 @@ export default function App() {
 
                 {/* Right Column: Log Spend Entry */}
                 <div className="space-y-6">
-                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm sticky top-24">
-                        <h3 className="text-md font-bold mb-4 text-slate-900">📝 Log Spend Entry</h3>
+                    <div className={`p-6 rounded-2xl border shadow-sm sticky top-24 transition-colors duration-300 ${darkMode ? 'bg-neutral-950 border-neutral-900 shadow-xl' : 'bg-white border-slate-200'}`}>
+                        <h3 className={`text-md font-bold mb-4 ${darkMode ? 'text-white' : 'text-slate-900'}`}>📝 Log Spend Entry</h3>
 
                         <form onSubmit={addTransaction} className="space-y-4">
                             <div>
-                                <label className="block text-xs text-slate-500 mb-1.5 uppercase tracking-wide">Amount (₹)</label>
-                                <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} required min="1" className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-900 focus:outline-none focus:border-blue-600" placeholder="0.00" />
+                                <label className={`block text-xs mb-1.5 uppercase tracking-wide ${darkMode ? 'text-neutral-450' : 'text-slate-550'}`}>Amount (₹)</label>
+                                <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} required min="1" className={`w-full border rounded-lg px-4 py-2 focus:outline-none transition-colors duration-300 ${darkMode ? 'bg-black border-neutral-800 text-white focus:border-white' : 'bg-white border-slate-200 text-slate-900 focus:border-blue-600'}`} placeholder="0.00" />
                             </div>
 
                             <div>
-                                <label className="block text-xs text-slate-500 mb-1.5 uppercase tracking-wide">Payment Mode / Type</label>
-                                <select value={mode} onChange={(e) => setMode(e.target.value)} className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-900 focus:outline-none focus:border-blue-600 appearance-none">
+                                <label className={`block text-xs mb-1.5 uppercase tracking-wide ${darkMode ? 'text-neutral-450' : 'text-slate-550'}`}>Payment Mode / Type</label>
+                                <select value={mode} onChange={(e) => setMode(e.target.value)} className={`w-full border rounded-lg px-4 py-2 focus:outline-none appearance-none transition-colors duration-300 ${darkMode ? 'bg-black border-neutral-800 text-white focus:border-white' : 'bg-white border-slate-200 text-slate-900 focus:border-blue-600'}`}>
                                     <option value="upi">📱 UPI Transfer (Deducted)</option>
                                     <option value="cash">💵 Hard Cash (Deducted)</option>
                                     <option value="received_upi">💰 Received UPI (Credit)</option>
@@ -583,23 +602,23 @@ export default function App() {
                             </div>
 
                             <div>
-                                <label className="block text-xs text-slate-500 mb-1.5 uppercase tracking-wide">Categories (Select Multiple)</label>
+                                <label className={`block text-xs mb-1.5 uppercase tracking-wide ${darkMode ? 'text-neutral-450' : 'text-slate-550'}`}>Categories (Select Multiple)</label>
                                 <div className="flex flex-wrap gap-1.5 mb-3">
                                     {presetTags.map(tag => (
                                         <button
                                             type="button"
                                             key={tag.label}
                                             onClick={() => toggleTag(tag.label)}
-                                            className={`text-xs px-2.5 py-1 rounded-md border transition-all ${selectedTags.includes(tag.label) ? 'border-blue-600 text-white bg-blue-600' : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-slate-350'}`}
+                                            className={`text-xs px-2.5 py-1 rounded-md border transition-all ${selectedTags.includes(tag.label) ? (darkMode ? 'border-white text-white bg-neutral-900' : 'border-blue-600 text-white bg-blue-600') : (darkMode ? 'bg-black text-neutral-400 border-neutral-800 hover:border-neutral-500' : 'bg-slate-50 text-slate-650 border-slate-200 hover:border-slate-350')}`}
                                         >
                                             {tag.emoji} {tag.label}
                                         </button>
                                     ))}
                                 </div>
-                                <div className="w-full bg-white border border-slate-200 rounded-lg p-2 focus-within:border-blue-600 transition min-h-[42px] flex items-center justify-between">
+                                <div className={`w-full border rounded-lg p-2 transition min-h-[42px] flex items-center justify-between ${darkMode ? 'bg-black border-neutral-800 focus-within:border-white' : 'bg-white border-slate-200 focus-within:border-blue-600'}`}>
                                     <div className="flex flex-wrap gap-1.5 items-center flex-1">
                                         {selectedTags.filter(t => !presetTags.map(pt => pt.label).includes(t)).map(tag => (
-                                            <span key={tag} className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 border border-blue-100 text-xs px-2 py-0.5 rounded-md">
+                                            <span key={tag} className={`inline-flex items-center gap-1 border text-xs px-2 py-0.5 rounded-md ${darkMode ? 'bg-neutral-900 text-white border-neutral-800' : 'bg-blue-50 text-blue-700 border-blue-100'}`}>
                                                 ✨ {tag}
                                                 <button type="button" onClick={() => toggleTag(tag)} className="hover:text-rose-600 font-bold ml-0.5">×</button>
                                             </span>
@@ -609,22 +628,22 @@ export default function App() {
                                             value={customTag}
                                             onChange={(e) => setCustomTag(e.target.value)}
                                             onKeyDown={handleCustomTag}
-                                            className="flex-1 bg-transparent text-sm text-slate-900 focus:outline-none placeholder-slate-400 min-w-[120px]"
+                                            className={`flex-1 bg-transparent text-sm focus:outline-none placeholder-slate-400 min-w-[120px] ${darkMode ? 'text-white' : 'text-slate-900'}`}
                                             placeholder="Type custom category..."
                                         />
                                     </div>
-                                    <button type="button" onClick={addCustomTag} className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded transition shrink-0 ml-2">
+                                    <button type="button" onClick={addCustomTag} className={`text-xs px-3 py-1 rounded transition shrink-0 ml-2 ${darkMode ? 'bg-white hover:bg-neutral-200 text-black' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}>
                                         Add
                                     </button>
                                 </div>
                             </div>
 
                             <div>
-                                <label className="block text-xs text-slate-500 mb-1.5 uppercase tracking-wide">Remarks</label>
-                                <input type="text" value={desc} onChange={(e) => setDesc(e.target.value)} className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-900 focus:outline-none focus:border-blue-600" placeholder="e.g., Party split with friends" />
+                                <label className={`block text-xs mb-1.5 uppercase tracking-wide ${darkMode ? 'text-neutral-450' : 'text-slate-550'}`}>Remarks</label>
+                                <input type="text" value={desc} onChange={(e) => setDesc(e.target.value)} className={`w-full border rounded-lg px-4 py-2 focus:outline-none transition-colors duration-300 ${darkMode ? 'bg-black border-neutral-800 text-white focus:border-white' : 'bg-white border-slate-200 text-slate-900 focus:border-blue-600'}`} placeholder="e.g., Party split with friends" />
                             </div>
 
-                            <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg transition transform active:scale-95 mt-2">
+                            <button type="submit" className={`w-full font-bold py-2.5 rounded-lg transition transform active:scale-95 mt-2 ${darkMode ? 'bg-white hover:bg-neutral-200 text-black' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}>
                                 Send to Server
                             </button>
                         </form>
@@ -636,9 +655,9 @@ export default function App() {
             <style dangerouslySetInnerHTML={{
                 __html: `
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(241, 245, 249, 0.5); border-radius: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(203, 213, 225, 0.8); border-radius: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(100, 116, 139, 1); }
+        .custom-scrollbar::-webkit-scrollbar-track { background: ${darkMode ? 'rgba(0, 0, 0, 0.5)' : 'rgba(241, 245, 249, 0.5)'}; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: ${darkMode ? 'rgba(163, 163, 163, 0.8)' : 'rgba(203, 213, 225, 0.8)'}; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: ${darkMode ? 'rgba(255, 255, 255, 1)' : 'rgba(100, 116, 139, 1)'}; }
       `}} />
         </div>
     );
