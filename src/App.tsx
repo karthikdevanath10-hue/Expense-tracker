@@ -269,6 +269,7 @@ export default function App() {
         }
 
         const payload = {
+            id: 'local_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9),
             amount: amt,
             mode: txMode,
             category: txTags.join(', '),
@@ -320,6 +321,36 @@ export default function App() {
         } else {
             setTransactions([]);
             showToast("Records cleared.");
+        }
+    };
+
+    const deleteTransaction = async (txId, timestamp) => {
+        if (!window.confirm("Are you sure you want to delete this record?")) return;
+        if (user && db) {
+            try {
+                if (txId) {
+                    await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'transactions', txId));
+                } else {
+                    const q = query(collection(db, 'artifacts', appId, 'users', user.uid, 'transactions'));
+                    const snaps = await getDocs(q);
+                    snaps.forEach(async (document) => {
+                        if (document.data().timestamp === timestamp) {
+                            await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'transactions', document.id));
+                        }
+                    });
+                }
+                showToast("Record deleted.", "success");
+            } catch (err) {
+                console.error("Delete transaction error:", err);
+                showToast("Failed to delete record.", "error");
+            }
+        } else {
+            setTransactions(prev => {
+                const newTxs = prev.filter(t => t.id !== txId && t.timestamp !== timestamp);
+                localStorage.setItem('local_txs', JSON.stringify(newTxs));
+                return newTxs;
+            });
+            showToast("Record deleted locally.");
         }
     };
 
@@ -568,9 +599,18 @@ export default function App() {
                                                     {t.mode.replace('_', ' ')} • {t.category}
                                                 </span>
                                             </div>
-                                            <span className={`font-semibold text-sm font-mono ${isIncome ? 'text-emerald-600' : 'text-rose-600'}`}>
-                                                {isIncome ? '+' : '-'}₹{t.amount}
-                                            </span>
+                                            <div className="flex items-center gap-3">
+                                                <span className={`font-semibold text-sm font-mono ${isIncome ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                                    {isIncome ? '+' : '-'}₹{t.amount}
+                                                </span>
+                                                <button
+                                                    onClick={() => deleteTransaction(t.id, t.timestamp)}
+                                                    className="text-xs text-rose-500 hover:text-rose-700 opacity-60 hover:opacity-100 transition p-1"
+                                                    title="Delete record"
+                                                >
+                                                    🗑️
+                                                </button>
+                                            </div>
                                         </div>
                                     );
                                 })
