@@ -37,14 +37,19 @@ const Toast = ({ message, type = 'info', onClose }) => {
 };
 
 // --- Custom SVG Donut Chart (Replacing Canvas to avoid dependencies) ---
-const DonutChart = ({ data, darkMode }) => {
-    const colors = ['#1e3a8a', '#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#0284c7', '#06b6d4', '#0d9488', '#4f46e5', '#312e81'];
+// --- Custom SVG Donut Chart (Replacing Canvas to avoid dependencies) ---
+const DonutChart = ({ 
+    data, 
+    darkMode,
+    emptyMessage = 'No expense data yet',
+    colors = ['#1e3a8a', '#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#0284c7', '#06b6d4', '#0d9488', '#4f46e5', '#312e81']
+}) => {
     const total = Object.values(data).reduce((sum, val) => sum + val, 0);
 
     if (total === 0) {
         return (
             <div className={`flex items-center justify-center h-full w-full text-sm ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                No expense data yet
+                {emptyMessage}
             </div>
         );
     }
@@ -73,21 +78,83 @@ const DonutChart = ({ data, darkMode }) => {
     return (
         <div className="flex items-center justify-center gap-8 h-full w-full">
             <svg viewBox="-1.2 -1.2 2.4 2.4" className="w-36 h-36 transform -rotate-90 shrink-0">
-                {slices.map((slice, i) => (
-                    <path key={i} d={slice.pathData} fill="none" stroke={slice.color} strokeWidth="0.4" />
-                ))}
+                {slices.map((slice, i) => {
+                    if (slice.percent >= 0.999) {
+                        return (
+                            <circle key={i} cx="0" cy="0" r="1" fill="none" stroke={slice.color} strokeWidth="0.4" />
+                        );
+                    }
+                    return (
+                        <path key={i} d={slice.pathData} fill="none" stroke={slice.color} strokeWidth="0.4" />
+                    );
+                })}
             </svg>
             <div className="flex flex-col gap-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar text-left">
                 {slices.map((slice, i) => (
                     <div key={i} className="flex items-center gap-2 text-xs">
                         <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: slice.color }}></span>
                         <span className={`truncate max-w-[110px] ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>{slice.label}</span>
-                        <span className={`ml-auto font-mono ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>₹{slice.value.toFixed(0)} ({(slice.percent * 100).toFixed(0)}%)</span>
+                        <span className={`ml-auto font-mono ${darkMode ? 'text-slate-500' : 'text-slate-550'}`}>₹{slice.value.toFixed(0)} ({(slice.percent * 100).toFixed(0)}%)</span>
                     </div>
                 ))}
             </div>
         </div>
     );
+};
+
+// --- Helper Functions for Credit Check & De-duplication ---
+const isTransactionCredit = (text, titleOrApp) => {
+    const lowerText = text.toLowerCase();
+    const lowerTitleOrApp = titleOrApp ? titleOrApp.toLowerCase() : '';
+
+    const directCreditKeywords = ["credited", "received", "added", "deposited", "refunded", "refund"];
+    if (directCreditKeywords.some(keyword => lowerText.includes(keyword))) {
+        return true;
+    }
+
+    if (lowerText.includes("credit") && !lowerText.includes("credit card")) {
+        return true;
+    }
+
+    const lowerWords = lowerText.split(/[^a-z]+/);
+    const sentIdx = lowerWords.indexOf("sent");
+    if (sentIdx !== -1) {
+        const toIdx = lowerWords.indexOf("to");
+        if (toIdx !== -1 && toIdx > sentIdx) {
+            return true;
+        }
+    }
+
+    return false;
+};
+
+const extractSignificantWords = (text) => {
+    const lowerText = text.toLowerCase();
+    const stopWords = new Set(["rs", "inr", "upi", "via", "ref", "credited", "debited", "spent", "paid", "received", "sent", "deposited", "added", "refunded", "refund", "your", "bank", "account", "from", "for", "and", "the", "has", "been", "dear", "customer", "successful", "transaction"]);
+    const words = lowerText.split(/[^a-z]+/);
+    return words.filter(w => w.length >= 3 && !stopWords.has(w));
+};
+
+const isDuplicateTransaction = (existingTxs, amount, isCredit, currentText, now = Date.now(), thresholdMs = 120 * 1000) => {
+    const currentWords = extractSignificantWords(currentText);
+
+    return existingTxs.some(tx => {
+        const timeDiff = Math.abs(tx.timestamp - now);
+        if (timeDiff > thresholdMs) return false;
+
+        const isTxCredit = tx.mode === 'received_upi' || tx.mode === 'received_cash';
+        if (tx.amount !== amount || isTxCredit !== isCredit) return false;
+
+        const existingText = tx.rawText || tx.desc || '';
+        const existingWords = extractSignificantWords(existingText);
+
+        if (currentWords.length > 0 && existingWords.length > 0) {
+            const hasOverlap = currentWords.some(word => existingWords.includes(word));
+            return hasOverlap;
+        }
+
+        return true;
+    });
 };
 
 // --- Main Application Component ---
@@ -207,12 +274,19 @@ export default function App() {
         // Fetch Transactions
         const txQuery = query(collection(db, 'artifacts', appId, 'users', user.uid, 'transactions'));
         const unsubTx = onSnapshot(txQuery, (snapshot) => {
-            const txs = [];
-            snapshot.forEach(docSnap => txs.push({ id: docSnap.id, ...docSnap.data() }));
-            // Sort newest first
-            txs.sort((a, b) => b.timestamp - a.timestamp);
-            setTransactions(txs);
-            localStorage.setItem('local_txs', JSON.stringify(txs));
+            const dbTxs = [];
+            snapshot.forEach(docSnap => dbTxs.push({ id: docSnap.id, ...docSnap.data() }));
+            
+            setTransactions(prev => {
+                const localUnsynced = prev.filter(t => t.id && t.id.startsWith('local_'));
+                // Keep local unsynced transactions that don't match any DB transaction by timestamp
+                const filteredLocal = localUnsynced.filter(lt => !dbTxs.some(dt => dt.timestamp === lt.timestamp));
+                
+                const merged = [...dbTxs, ...filteredLocal];
+                merged.sort((a, b) => b.timestamp - a.timestamp);
+                localStorage.setItem('local_txs', JSON.stringify(merged));
+                return merged;
+            });
         }, (error) => console.error("Transactions fetch error:", error));
 
         return () => { unsubBudget(); unsubTx(); };
@@ -224,6 +298,7 @@ export default function App() {
     let receivedUpi = 0;
     let receivedCash = 0;
     const categoryData = {};
+    const incomeCategoryData = {};
 
     transactions.forEach(t => {
         if (t.mode === 'cash') spentCash += t.amount;
@@ -236,6 +311,8 @@ export default function App() {
         tags.forEach(tag => {
             if (t.mode !== 'received_upi' && t.mode !== 'received_cash') { // Only chart expenses
                 categoryData[tag] = (categoryData[tag] || 0) + splitAmount;
+            } else {
+                incomeCategoryData[tag] = (incomeCategoryData[tag] || 0) + splitAmount;
             }
         });
     });
@@ -262,9 +339,16 @@ export default function App() {
         setIsBudgetOpen(false);
     };
 
-    const saveTransaction = async (amt, txMode, txDesc, txTags) => {
+    const saveTransaction = async (amt, txMode, txDesc, txTags, rawText) => {
         if (!amt || amt <= 0) {
             showToast("Enter a valid amount", "error");
+            return false;
+        }
+
+        const isCredit = txMode === 'received_upi' || txMode === 'received_cash';
+        const isDuplicate = isDuplicateTransaction(transactions, amt, isCredit, rawText || txDesc || '');
+        if (isDuplicate) {
+            console.log("Duplicate transaction ignored:", amt, txDesc);
             return false;
         }
 
@@ -275,7 +359,8 @@ export default function App() {
             category: txTags.join(', '),
             desc: txDesc || txTags.join(', '),
             timestamp: Date.now(),
-            dateStr: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            dateStr: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            rawText: rawText || ''
         };
 
         if (user && db) {
@@ -300,7 +385,7 @@ export default function App() {
             finalTags.push(mode === 'received_upi' || mode === 'received_cash' ? 'Money Received' : 'Misc');
         }
 
-        const success = await saveTransaction(amt, mode, desc, finalTags);
+        const success = await saveTransaction(amt, mode, desc, finalTags, undefined);
         if (success) {
             // Reset Form
             setAmount('');
@@ -380,14 +465,13 @@ export default function App() {
         extractedAmount = parseFloat(match[1].replace(/,/g, ''));
         if (isNaN(extractedAmount)) return showToast("Extracted amount invalid.", "error");
 
-        const lowerText = text.toLowerCase();
-        const isCredit = ["credited", "received", "added", "deposited"].some(t => lowerText.includes(t));
+        const isCredit = isTransactionCredit(text);
 
         const finalMode = isCredit ? "received_upi" : "upi";
         const finalDesc = isCredit ? "Auto SMS: Income Received" : "Auto SMS: Purchase detected";
         const finalTags = [isCredit ? "Money Received" : "Misc"];
 
-        const success = await saveTransaction(extractedAmount, finalMode, finalDesc, finalTags);
+        const success = await saveTransaction(extractedAmount, finalMode, finalDesc, finalTags, text);
         if (success) {
             setSmsInput('');
             showToast(`Auto-Read SMS Detected: ₹${extractedAmount} (${isCredit ? 'CREDIT' : 'DEBIT'})`, "success");
@@ -571,11 +655,25 @@ export default function App() {
                         </div>
                     </div>
 
-                    {/* Spend Breakdown / Analytics */}
-                    <div className={`p-6 rounded-2xl border shadow-sm transition-colors duration-300 ${darkMode ? 'bg-neutral-950 border-neutral-900' : 'bg-white border-slate-200'}`}>
-                        <h3 className={`text-sm font-semibold mb-4 uppercase tracking-wider ${darkMode ? 'text-neutral-400' : 'text-slate-650'}`}>Spend Breakdown</h3>
-                        <div className="h-56 flex justify-center">
-                            <DonutChart data={categoryData} darkMode={darkMode} />
+                    {/* Breakdown Graphs (Spend & Income side-by-side) */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className={`p-6 rounded-2xl border shadow-sm transition-colors duration-300 ${darkMode ? 'bg-neutral-950 border-neutral-900' : 'bg-white border-slate-200'}`}>
+                            <h3 className={`text-sm font-semibold mb-4 uppercase tracking-wider ${darkMode ? 'text-neutral-400' : 'text-slate-650'}`}>Spend Breakdown</h3>
+                            <div className="h-56 flex items-center justify-center">
+                                <DonutChart data={categoryData} darkMode={darkMode} emptyMessage="No spend data yet" />
+                            </div>
+                        </div>
+
+                        <div className={`p-6 rounded-2xl border shadow-sm transition-colors duration-300 ${darkMode ? 'bg-neutral-950 border-neutral-900' : 'bg-white border-slate-200'}`}>
+                            <h3 className={`text-sm font-semibold mb-4 uppercase tracking-wider ${darkMode ? 'text-neutral-400' : 'text-slate-650'}`}>Income Breakdown</h3>
+                            <div className="h-56 flex items-center justify-center">
+                                <DonutChart 
+                                    data={incomeCategoryData} 
+                                    darkMode={darkMode} 
+                                    emptyMessage="No income data yet"
+                                    colors={['#15803d', '#16a34a', '#22c55e', '#4ade80', '#86efac', '#059669', '#10b981', '#34d399', '#6ee7b7', '#115e59']}
+                                />
+                            </div>
                         </div>
                     </div>
 
