@@ -507,7 +507,7 @@ export default function App() {
             <header className={`border-b sticky top-0 z-10 backdrop-blur transition-colors duration-300 ${darkMode ? 'border-neutral-900 bg-black/80' : 'border-slate-200 bg-white/80'}`}>
                 <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
                     <h1 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-slate-900'}`}>
-                        🚀 CampusSpend <span className="text-xs text-slate-500 font-mono">v4 (Cloud)</span>
+                        🚀 TrackO <span className="text-xs text-slate-500 font-mono">v4 (Cloud)</span>
                     </h1>
                     <div className="flex items-center gap-3">
                         <button
