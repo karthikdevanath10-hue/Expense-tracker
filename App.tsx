@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     StyleSheet,
     Text,
@@ -10,18 +10,28 @@ import {
     SafeAreaView,
     StatusBar,
     ActivityIndicator,
-    PermissionsAndroid
+    PermissionsAndroid,
+    Platform,
+    Animated,
+    Image,
+    Dimensions
 } from 'react-native';
+import * as SplashScreen from 'expo-splash-screen';
+
+// Keep the splash screen visible while loading resources
+SplashScreen.preventAutoHideAsync().catch(() => {});
+
 import { initializeApp } from 'firebase/app';
 // @ts-ignore
-import { initializeAuth, getReactNativePersistence, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import { initializeAuth, getReactNativePersistence, browserLocalPersistence, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
     getFirestore, collection, query, onSnapshot, addDoc, doc, setDoc, deleteDoc, getDocs, getDoc
 } from 'firebase/firestore';
-// @ts-ignore
-import { checkIfHasSMSPermission, requestReadSMSPermission, startReadSMS } from "@maniac-tech/react-native-expo-read-sms";
-import Svg, { Path } from 'react-native-svg';
+import RNAndroidNotificationListener from 'react-native-android-notification-listener';
+import { DeviceEventEmitter, AppState } from 'react-native';
+import Svg, { Path, Circle } from 'react-native-svg';
+import { isTransactionCredit, isDuplicateTransaction, getNumericTimestamp } from './utils/transactionParser';
 
 // Declare global build-injected variables for TypeScript compiler
 declare var __firebase_config: any;
@@ -40,19 +50,28 @@ const firebaseConfig = {
 };
 const app = initializeApp(firebaseConfig);
 const auth = initializeAuth(app, {
-  persistence: getReactNativePersistence(AsyncStorage)
+  persistence: Platform.OS === 'web'
+    ? browserLocalPersistence
+    : (getReactNativePersistence ? getReactNativePersistence(AsyncStorage) : browserLocalPersistence)
 });
 const db = getFirestore(app);
 const appId = 'campus-spend-app';
 
-const DonutChart = ({ data }: { data: { [key: string]: number } }) => {
-    const colors = ['#1e3a8a', '#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#0284c7', '#06b6d4', '#0d9488', '#4f46e5', '#312e81'];
+const DonutChart = ({ 
+    data, 
+    emptyMessage = 'No expense data yet',
+    colors = ['#1e3a8a', '#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#0284c7', '#06b6d4', '#0d9488', '#4f46e5', '#312e81']
+}: { 
+    data: { [key: string]: number }; 
+    emptyMessage?: string;
+    colors?: string[];
+}) => {
     const total = Object.values(data).reduce((sum, val) => sum + val, 0);
 
     if (total === 0) {
         return (
             <View style={styles.donutEmptyContainer}>
-                <Text style={styles.donutEmptyText}>No expense data yet</Text>
+                <Text style={styles.donutEmptyText}>{emptyMessage}</Text>
             </View>
         );
     }
@@ -82,9 +101,16 @@ const DonutChart = ({ data }: { data: { [key: string]: number } }) => {
         <View style={styles.donutContainer}>
             <View style={styles.donutSvgWrapper}>
                 <Svg viewBox="-1.2 -1.2 2.4 2.4" style={styles.donutSvg}>
-                    {slices.map((slice, i) => (
-                        <Path key={i} d={slice.pathData} fill="none" stroke={slice.color} strokeWidth="0.4" />
-                    ))}
+                    {slices.map((slice, i) => {
+                        if (slice.percent >= 0.999) {
+                            return (
+                                <Circle key={i} cx={0} cy={0} r={1} fill="none" stroke={slice.color} strokeWidth="0.4" />
+                            );
+                        }
+                        return (
+                            <Path key={i} d={slice.pathData} fill="none" stroke={slice.color} strokeWidth="0.4" />
+                        );
+                    })}
                 </Svg>
             </View>
             <View style={styles.donutLegendContainer}>
@@ -108,6 +134,10 @@ export default function App() {
     const [smsInput, setSmsInput] = useState('');
     const [smsPermissionStatus, setSmsPermissionStatus] = useState('Checking...');
     const [darkMode, setDarkMode] = useState(false);
+    const [isHistoryExpanded, setIsHistoryExpanded] = useState(false);
+    const [appIsReady, setAppIsReady] = useState(false);
+    const splashOpacity = useRef(new Animated.Value(1)).current;
+    const [showSplashOverlay, setShowSplashOverlay] = useState(true);
 
     // Form States
     const [amount, setAmount] = useState('');
@@ -130,21 +160,48 @@ export default function App() {
         await AsyncStorage.setItem('theme_dark', newVal.toString());
     };
 
-    // --- Load Local Cache on Mount ---
+    // --- Load Local Cache and Control Splash Screen on Mount ---
     useEffect(() => {
-        const loadCache = async () => {
+        const prepare = async () => {
             try {
-                const localBudget = await AsyncStorage.getItem('local_budget');
-                if (localBudget) setBudget(JSON.parse(localBudget));
-                const localTxs = await AsyncStorage.getItem('local_txs');
-                if (localTxs) setTransactions(JSON.parse(localTxs));
-                const localDark = await AsyncStorage.getItem('theme_dark');
-                if (localDark) setDarkMode(localDark === 'true');
-            } catch (err) {
-                console.error("AsyncStorage load cache error:", err);
+                // Run local cache loading and artificial delay in parallel to ensure
+                // the splash screen is visible for a minimum duration (e.g., 2 seconds)
+                // before triggering the fade-out.
+                const cachePromise = (async () => {
+                    try {
+                        const localBudget = await AsyncStorage.getItem('local_budget');
+                        if (localBudget) setBudget(JSON.parse(localBudget));
+                        const localTxs = await AsyncStorage.getItem('local_txs');
+                        if (localTxs) setTransactions(JSON.parse(localTxs));
+                        const localDark = await AsyncStorage.getItem('theme_dark');
+                        if (localDark) setDarkMode(localDark === 'true');
+                    } catch (err) {
+                        console.error("AsyncStorage load cache error:", err);
+                    }
+                })();
+
+                const delayPromise = new Promise(resolve => setTimeout(resolve, 2000));
+
+                await Promise.all([cachePromise, delayPromise]);
+            } catch (e) {
+                console.warn(e);
+            } finally {
+                setAppIsReady(true);
+                // Hide native splash screen immediately (the JS overlay handles the visual transition)
+                SplashScreen.hideAsync().catch(() => {});
+                
+                // Fade out our custom JS splash screen overlay smoothly
+                Animated.timing(splashOpacity, {
+                    toValue: 0,
+                    duration: 500,
+                    useNativeDriver: true,
+                }).start(() => {
+                    setShowSplashOverlay(false);
+                });
             }
         };
-        loadCache();
+
+        prepare();
     }, []);
 
     // --- 1. Firebase Auth ---
@@ -169,36 +226,57 @@ export default function App() {
         return () => unsubscribe();
     }, []);
 
+    const syncLocalData = async () => {
+        if (!user || !db) return;
+        try {
+            // Upload unsynced transactions
+            const localTxsStr = await AsyncStorage.getItem('local_txs');
+            if (localTxsStr) {
+                const localTxs = JSON.parse(localTxsStr);
+                const unsynced = localTxs.filter((tx: any) => !tx.id || (typeof tx.id === 'string' && tx.id.startsWith('local_')));
+                for (const tx of unsynced) {
+                    const { id, ...txData } = tx;
+                    await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'transactions'), txData);
+                }
+            }
+            
+            // Upload unsynced budget
+            const localBudgetStr = await AsyncStorage.getItem('local_budget');
+            if (localBudgetStr) {
+                const localBudget = JSON.parse(localBudgetStr);
+                const budgetRef = doc(db, 'artifacts', appId, 'users', user.uid, 'config', 'budget');
+                const docSnap = await getDoc(budgetRef);
+                if (!docSnap.exists() && (localBudget.cash > 0 || localBudget.upi > 0)) {
+                    await setDoc(budgetRef, localBudget);
+                }
+            }
+        } catch (err) {
+            console.error("Local sync error:", err);
+        }
+    };
+
     // --- Sync Local Unsynced Data to Firestore on Login ---
     useEffect(() => {
-        if (!user || !db) return;
-        const syncLocalData = async () => {
+        syncLocalData();
+
+        // Setup a periodic check to retry syncing unsynced local transactions
+        // in case the app was offline and internet/wifi connection is restored.
+        const intervalId = setInterval(async () => {
             try {
-                // Upload unsynced transactions
                 const localTxsStr = await AsyncStorage.getItem('local_txs');
                 if (localTxsStr) {
                     const localTxs = JSON.parse(localTxsStr);
-                    const unsynced = localTxs.filter((tx: any) => !tx.id);
-                    for (const tx of unsynced) {
-                        await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'transactions'), tx);
-                    }
-                }
-                
-                // Upload unsynced budget
-                const localBudgetStr = await AsyncStorage.getItem('local_budget');
-                if (localBudgetStr) {
-                    const localBudget = JSON.parse(localBudgetStr);
-                    const budgetRef = doc(db, 'artifacts', appId, 'users', user.uid, 'config', 'budget');
-                    const docSnap = await getDoc(budgetRef);
-                    if (!docSnap.exists() && (localBudget.cash > 0 || localBudget.upi > 0)) {
-                        await setDoc(budgetRef, localBudget);
+                    const unsynced = localTxs.filter((tx: any) => !tx.id || (typeof tx.id === 'string' && tx.id.startsWith('local_')));
+                    if (unsynced.length > 0) {
+                        syncLocalData();
                     }
                 }
             } catch (err) {
-                console.error("Local sync error:", err);
+                console.error("Periodic sync check error:", err);
             }
-        };
-        syncLocalData();
+        }, 10000); // Retry every 10 seconds
+
+        return () => clearInterval(intervalId);
     }, [user]);
 
     // --- 2. Firestore Data Sync ---
@@ -218,71 +296,118 @@ export default function App() {
 
         // Fetch Transactions
         const txQuery = query(collection(db, 'artifacts', appId, 'users', user.uid, 'transactions'));
-        const unsubTx = onSnapshot(txQuery, (snapshot) => {
+        const unsubTx = onSnapshot(txQuery, async (snapshot) => {
             const txs: any[] = [];
-            snapshot.forEach(docSnap => txs.push({ id: docSnap.id, ...docSnap.data() }));
+            snapshot.forEach(docSnap => {
+                const data = docSnap.data();
+                txs.push({ 
+                    ...data, 
+                    id: docSnap.id,
+                    timestamp: getNumericTimestamp(data.timestamp)
+                });
+            });
             txs.sort((a, b) => b.timestamp - a.timestamp);
-            setTransactions(txs);
-            AsyncStorage.setItem('local_txs', JSON.stringify(txs)).catch(err => console.error(err));
+            
+            try {
+                const localTxsStr = await AsyncStorage.getItem('local_txs');
+                const localTxs = localTxsStr ? JSON.parse(localTxsStr) : [];
+                
+                // Preserve any local unsynced transactions that are not yet on the server
+                const unsynced = localTxs.filter((localTx: any) => {
+                    if (!localTx.id || typeof localTx.id !== 'string' || !localTx.id.startsWith('local_')) {
+                        return false;
+                    }
+                    // Check if this local transaction is already present in the remote list (matching by timestamp and amount)
+                    const isAlreadyUploaded = txs.some((remoteTx: any) => 
+                        remoteTx.timestamp === localTx.timestamp && remoteTx.amount === localTx.amount
+                    );
+                    return !isAlreadyUploaded;
+                });
+                
+                const merged = [...unsynced, ...txs];
+                merged.sort((a, b) => b.timestamp - a.timestamp);
+                
+                setTransactions(merged);
+                await AsyncStorage.setItem('local_txs', JSON.stringify(merged));
+                
+                // Trigger upload sync since we successfully received a server update (online)
+                if (unsynced.length > 0) {
+                    syncLocalData();
+                }
+            } catch (err) {
+                console.error("Error merging local transactions in onSnapshot:", err);
+                setTransactions(txs);
+                AsyncStorage.setItem('local_txs', JSON.stringify(txs)).catch(e => console.error(e));
+            }
         }, (error) => console.error("Transactions fetch error:", error));
 
         return () => { unsubBudget(); unsubTx(); };
     }, [user]);
-
-    // --- 3. SMS Permission and Listener Initialization ---
-    useEffect(() => {
-        const initSMS = async () => {
-            try {
-                // Check permissions directly using native React Native API
-                const hasReceive = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.RECEIVE_SMS);
-                const hasRead = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.READ_SMS);
-                
-                if (hasReceive && hasRead) {
-                    setSmsPermissionStatus('Listening...');
-                    startSMSListener();
-                } else {
-                    setSmsPermissionStatus('Requesting...');
-                    const results = await PermissionsAndroid.requestMultiple([
-                        PermissionsAndroid.PERMISSIONS.RECEIVE_SMS,
-                        PermissionsAndroid.PERMISSIONS.READ_SMS
-                    ]);
-                    
-                    const receiveGranted = results[PermissionsAndroid.PERMISSIONS.RECEIVE_SMS] === PermissionsAndroid.RESULTS.GRANTED;
-                    const readGranted = results[PermissionsAndroid.PERMISSIONS.READ_SMS] === PermissionsAndroid.RESULTS.GRANTED;
-                    
-                    if (receiveGranted && readGranted) {
-                        setSmsPermissionStatus('Listening...');
-                        startSMSListener();
-                    } else {
-                        setSmsPermissionStatus('Permission Denied');
-                    }
-                }
-            } catch (err) {
-                console.error("SMS permission check error:", err);
-                setSmsPermissionStatus('Unsupported');
+    // --- 3. Notification Listener Permission and Sync Initialization ---
+    const checkNotificationPermission = async () => {
+        if (Platform.OS !== 'android') {
+            setSmsPermissionStatus('Unsupported');
+            return false;
+        }
+        try {
+            const isAuthorized = await RNAndroidNotificationListener.getPermissionStatus();
+            if (isAuthorized === 'authorized') {
+                setSmsPermissionStatus('Listening...');
+                return true;
+            } else {
+                setSmsPermissionStatus('Disabled');
+                return false;
             }
-        };
-        initSMS();
-    }, []);
-
-    const startSMSListener = () => {
-        startReadSMS(
-            (status: string, smsText: string, error: any) => {
-                if (status === 'success' && smsText) {
-                    processRawSMS(smsText);
-                } else if (status === 'error') {
-                    console.log("SMS Read Error:", error);
-                }
-            }
-        );
+        } catch (err) {
+            console.error("Notification permission check error:", err);
+            setSmsPermissionStatus('Unsupported');
+            return false;
+        }
     };
 
+    useEffect(() => {
+        checkNotificationPermission();
+
+        // Listen for AppState changes to re-check when the user returns from settings
+        const subscription = AppState.addEventListener('change', async (nextAppState) => {
+            if (nextAppState === 'active') {
+                checkNotificationPermission();
+                
+                // Reload from local storage to ensure background-logged transactions are displayed immediately
+                try {
+                    const localTxs = await AsyncStorage.getItem('local_txs');
+                    if (localTxs) {
+                        setTransactions(JSON.parse(localTxs));
+                    }
+                } catch (err) {
+                    console.error("Failed to reload local transactions on active:", err);
+                }
+
+                syncLocalData();
+            }
+        });
+
+        // Listen for new background-logged transactions
+        const txSubscription = DeviceEventEmitter.addListener('NEW_TRANSACTION_LOGGED', (newTx) => {
+            setTransactions(prev => {
+                if (prev.some(t => t.id === newTx.id)) return prev;
+                return [newTx, ...prev];
+            });
+            syncLocalData();
+        });
+
+        return () => {
+            subscription.remove();
+            txSubscription.remove();
+        };
+    }, []);
     // --- 4. Calculations ---
     let spentCash = 0;
     let spentUpi = 0;
     let receivedUpi = 0;
     let receivedCash = 0;
     const categoryData: { [key: string]: number } = {};
+    const incomeCategoryData: { [key: string]: number } = {};
 
     transactions.forEach(t => {
         if (t.mode === 'cash') spentCash += t.amount;
@@ -295,6 +420,8 @@ export default function App() {
         tags.forEach((tag: string) => {
             if (t.mode !== 'received_upi' && t.mode !== 'received_cash') {
                 categoryData[tag] = (categoryData[tag] || 0) + splitAmount;
+            } else {
+                incomeCategoryData[tag] = (incomeCategoryData[tag] || 0) + splitAmount;
             }
         });
     });
@@ -317,9 +444,19 @@ export default function App() {
         setIsBudgetOpen(false);
     };
 
-    const saveTransaction = async (amt: number, txMode: string, txDesc: string, txTags: string[]) => {
+    const saveTransaction = async (amt: number, txMode: string, txDesc: string, txTags: string[], rawText?: string) => {
         if (!amt || amt <= 0) {
             Alert.alert("Error", "Enter a valid amount");
+            return false;
+        }
+
+        // Duplicate Detection Check (within a 2-minute window)
+        const isCredit = txMode === 'received_upi' || txMode === 'received_cash';
+        const now = Date.now();
+        const isDuplicate = isDuplicateTransaction(transactions, amt, isCredit, rawText || txDesc || '', now);
+
+        if (isDuplicate) {
+            Alert.alert("Duplicate Detected", "This transaction has already been logged.");
             return false;
         }
 
@@ -330,18 +467,24 @@ export default function App() {
             category: txTags.join(', '),
             desc: txDesc || txTags.join(', '),
             timestamp: Date.now(),
-            dateStr: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            dateStr: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            rawText: rawText || txDesc
         };
 
+        // 1. Save locally first (so UI updates instantly and data is persisted offline)
+        setTransactions(prev => {
+            const newTxs = [payload, ...prev];
+            AsyncStorage.setItem('local_txs', JSON.stringify(newTxs)).catch(err => console.error(err));
+            return newTxs;
+        });
+
+        // 2. Attempt to upload in the background (do not block the user interface if they are offline)
         if (user && db) {
-            await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'transactions'), payload);
-        } else {
-            setTransactions(prev => {
-                const newTxs = [payload, ...prev];
-                AsyncStorage.setItem('local_txs', JSON.stringify(newTxs)).catch(err => console.error(err));
-                return newTxs;
-            });
+            const { id, ...txData } = payload;
+            addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'transactions'), txData)
+                .catch(err => console.error("Background sync failed for new transaction:", err));
         }
+
         return true;
     };
 
@@ -444,14 +587,13 @@ export default function App() {
         extractedAmount = parseFloat(match[1].replace(/,/g, ''));
         if (isNaN(extractedAmount)) return;
 
-        const lowerText = text.toLowerCase();
-        const isCredit = ["credited", "received", "added", "deposited"].some(t => lowerText.includes(t));
+        const isCredit = isTransactionCredit(text);
 
         const finalMode = isCredit ? "received_upi" : "upi";
         const finalDesc = isCredit ? "Auto SMS: Income Received" : "Auto SMS: Purchase detected";
         const finalTags = [isCredit ? "Money Received" : "Misc"];
 
-        const success = await saveTransaction(extractedAmount, finalMode, finalDesc, finalTags);
+        const success = await saveTransaction(extractedAmount, finalMode, finalDesc, finalTags, text);
         if (success) {
             Alert.alert(
                 "✨ Transaction Auto-Logged",
@@ -491,14 +633,48 @@ export default function App() {
     }, [budget]);
 
     return (
-        <SafeAreaView style={[styles.safeArea, { backgroundColor: darkMode ? '#000000' : '#f8fafc' }]}>
+        <>
+            {showSplashOverlay && (
+                <Animated.View
+                    style={{
+                        position: 'absolute',
+                        left: 0,
+                        right: 0,
+                        top: 0,
+                        bottom: 0,
+                        backgroundColor: '#08070c',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        zIndex: 99999,
+                        opacity: splashOpacity,
+                    }}
+                >
+                    <Image
+                        source={require('./assets/splash-icon.png')}
+                        style={{
+                            width: Dimensions.get('window').width * 0.7,
+                            height: Dimensions.get('window').width * 0.7,
+                            resizeMode: 'contain',
+                        }}
+                    />
+                </Animated.View>
+            )}
+            <SafeAreaView 
+                style={[
+                    styles.safeArea, 
+                    { 
+                        backgroundColor: darkMode ? '#000000' : '#f8fafc',
+                        paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 24) : 0 
+                    }
+                ]}
+            >
             <StatusBar barStyle={darkMode ? "light-content" : "dark-content"} backgroundColor={darkMode ? "#000000" : "#f8fafc"} />
             <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
                 
                 {/* Header */}
                 <View style={styles.header}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                        <Text style={[styles.title, { color: darkMode ? '#ffffff' : '#0f172a' }]}>🚀 CampusSpend</Text>
+                        <Text style={[styles.title, { color: darkMode ? '#ffffff' : '#0f172a' }]}>🚀 TrackO</Text>
                         <TouchableOpacity 
                             onPress={toggleDarkMode} 
                             style={{ 
@@ -514,13 +690,34 @@ export default function App() {
                         </TouchableOpacity>
                     </View>
                     <View style={styles.badgeRow}>
-                        <View style={[styles.badgeAmber, { backgroundColor: darkMode ? '#121212' : '#f1f5f9', borderColor: darkMode ? '#262626' : '#e2e8f0' }]}>
-                            <Text style={[styles.badgeAmberText, { color: darkMode ? '#a3a3a3' : '#475569' }]}>💬 SMS: {smsPermissionStatus}</Text>
-                        </View>
+                        <TouchableOpacity 
+                            onPress={() => {
+                                if (Platform.OS !== 'android') return;
+                                if (smsPermissionStatus === 'Listening...') {
+                                    Alert.alert("Auto Log Active", "The app is monitoring bank transaction notifications in the background to automatically log expenses.");
+                                } else {
+                                    Alert.alert(
+                                        "Setup Auto Log",
+                                        "To automatically log expenses, we read bank transaction notifications in the background.\n\nOn Android 13+, the permission may say 'Restricted setting'. If so:\n1. Open Settings -> Apps -> See all apps.\n2. Tap TrackO.\n3. Tap the 3 dots in the top-right corner.\n4. Select 'Allow restricted settings'.\n5. Open the app again and tap 'Tap to Setup'.",
+                                        [
+                                            { text: "Cancel", style: "cancel" },
+                                            { text: "Open Settings", onPress: () => RNAndroidNotificationListener.requestPermission() }
+                                        ]
+                                    );
+                                }
+                            }}
+                            style={[styles.badgeAmber, { backgroundColor: darkMode ? '#121212' : '#f1f5f9', borderColor: darkMode ? '#262626' : '#e2e8f0' }]}
+                        >
+                            <Text style={[styles.badgeAmberText, { color: darkMode ? '#a3a3a3' : '#475569' }]}>
+                                {smsPermissionStatus === 'Listening...' ? '📢 Auto Log: Active' : 
+                                 smsPermissionStatus === 'Unsupported' ? '📢 Auto Log: Unsupported' : 
+                                 '📢 Auto Log: Tap to Setup'}
+                            </Text>
+                        </TouchableOpacity>
                         {user ? (
                             <View style={[styles.badgeGreen, { backgroundColor: darkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(37, 99, 235, 0.05)', borderColor: darkMode ? '#262626' : '#e2e8f0' }]}>
                                 <View style={[styles.pulseDot, { backgroundColor: darkMode ? '#ffffff' : '#2563eb' }]} />
-                                <Text style={[styles.badgeGreenText, { color: darkMode ? '#ffffff' : '#2563eb' }]}>Cloud Sync</Text>
+                                <Text style={[styles.badgeGreenText, { color: darkMode ? '#ffffff' : '#2563eb' }]}>Cloud Sync Active</Text>
                             </View>
                         ) : (
                             <View style={[styles.badgeGray, { backgroundColor: darkMode ? '#121212' : '#f1f5f9', borderColor: darkMode ? '#262626' : '#e2e8f0' }]}>
@@ -530,33 +727,37 @@ export default function App() {
                     </View>
                 </View>
 
-                {/* Simulator Card */}
+                {/* Quick Log Paste Card */}
                 <View style={[styles.simulatorCard, { backgroundColor: darkMode ? '#0a0a0a' : '#ffffff', borderColor: darkMode ? '#1f1f1f' : '#e2e8f0' }]}>
                     <View style={styles.simHeader}>
                         <View>
-                            <Text style={[styles.simTitle, { color: darkMode ? '#ffffff' : '#0f172a' }]}>Simulator: Bank SMS Receiver</Text>
-                            <Text style={[styles.simSub, { color: darkMode ? '#a3a3a3' : '#64748b' }]}>Test your SMS receiver extraction logic below.</Text>
+                            <Text style={[styles.simTitle, { color: darkMode ? '#ffffff' : '#0f172a' }]}>Quick Log: Paste Bank SMS</Text>
+                            <Text style={[styles.simSub, { color: darkMode ? '#a3a3a3' : '#64748b' }]}>Copy and paste a transaction SMS below to extract and log details instantly without background setup.</Text>
                         </View>
-                    </View>
-                    <View style={styles.simButtonRow}>
-                        <TouchableOpacity style={[styles.simBtnDebit, { backgroundColor: darkMode ? '#121212' : '#f8fafc', borderColor: darkMode ? '#262626' : '#e2e8f0' }]} onPress={() => simulateSMS('debit')}>
-                            <Text style={[styles.simBtnDebitText, { color: darkMode ? '#ffffff' : '#2563eb' }]}>⚡ Sim Debit</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={[styles.simBtnCredit, { backgroundColor: darkMode ? '#121212' : '#f8fafc', borderColor: darkMode ? '#262626' : '#e2e8f0' }]} onPress={() => simulateSMS('credit')}>
-                            <Text style={[styles.simBtnCreditText, { color: darkMode ? '#ffffff' : '#2563eb' }]}>⚡ Sim Credit</Text>
-                        </TouchableOpacity>
                     </View>
                     <TextInput
                         multiline
-                        placeholder="Type or paste incoming SMS here..."
+                        placeholder="Paste incoming transaction SMS here..."
                         placeholderTextColor={darkMode ? '#404040' : '#94a3b8'}
                         value={smsInput}
                         onChangeText={setSmsInput}
                         style={[styles.simTextarea, { backgroundColor: darkMode ? '#000000' : '#ffffff', borderColor: darkMode ? '#262626' : '#e2e8f0', color: darkMode ? '#ffffff' : '#0f172a' }]}
                     />
-                    <TouchableOpacity style={[styles.simProcessBtn, { backgroundColor: darkMode ? '#ffffff' : '#2563eb', borderColor: darkMode ? '#ffffff' : '#2563eb' }]} onPress={() => processRawSMS(smsInput)}>
-                        <Text style={[styles.simProcessText, { color: darkMode ? '#000000' : '#ffffff' }]}>Parse & Auto Extract SMS</Text>
+                    <TouchableOpacity style={[styles.simProcessBtn, { backgroundColor: darkMode ? '#ffffff' : '#2563eb', borderColor: darkMode ? '#ffffff' : '#2563eb', marginBottom: 12 }]} onPress={() => processRawSMS(smsInput)}>
+                        <Text style={[styles.simProcessText, { color: darkMode ? '#000000' : '#ffffff' }]}>Parse & Log SMS</Text>
                     </TouchableOpacity>
+                    
+                    <View style={{ borderTopWidth: 1, borderTopColor: darkMode ? '#1f1f1f' : '#f1f5f9', paddingTop: 10, marginTop: 4 }}>
+                        <Text style={{ fontSize: 12, fontWeight: '600', color: darkMode ? '#a3a3a3' : '#64748b', marginBottom: 6 }}>Or test with sample templates:</Text>
+                        <View style={styles.simButtonRow}>
+                            <TouchableOpacity style={[styles.simBtnDebit, { backgroundColor: darkMode ? '#121212' : '#f8fafc', borderColor: darkMode ? '#262626' : '#e2e8f0' }]} onPress={() => simulateSMS('debit')}>
+                                <Text style={[styles.simBtnDebitText, { color: darkMode ? '#ffffff' : '#2563eb' }]}>🧪 Debit</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={[styles.simBtnCredit, { backgroundColor: darkMode ? '#121212' : '#f8fafc', borderColor: darkMode ? '#262626' : '#e2e8f0' }]} onPress={() => simulateSMS('credit')}>
+                                <Text style={[styles.simBtnCreditText, { color: darkMode ? '#ffffff' : '#2563eb' }]}>🧪 Credit</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
                 </View>
 
                 {/* Pocket Money Setup Card */}
@@ -653,10 +854,21 @@ export default function App() {
                     </View>
                 </View>
 
-                {/* Spend Breakdown Graph */}
-                <View style={[styles.breakdownCard, { backgroundColor: darkMode ? '#0a0a0a' : '#ffffff', borderColor: darkMode ? '#1f1f1f' : '#e2e8f0' }]}>
-                    <Text style={[styles.breakdownTitle, { color: darkMode ? '#ffffff' : '#0f172a' }]}>SPEND BREAKDOWN</Text>
-                    <DonutChart data={categoryData} />
+                {/* Breakdown Graphs (Spend & Income side-by-side) */}
+                <View style={styles.breakdownRow}>
+                    <View style={[styles.breakdownCard, { backgroundColor: darkMode ? '#0a0a0a' : '#ffffff', borderColor: darkMode ? '#1f1f1f' : '#e2e8f0' }]}>
+                        <Text style={[styles.breakdownTitle, { color: darkMode ? '#ffffff' : '#0f172a' }]}>SPEND BREAKDOWN</Text>
+                        <DonutChart data={categoryData} emptyMessage="No spend data yet" />
+                    </View>
+
+                    <View style={[styles.breakdownCard, { backgroundColor: darkMode ? '#0a0a0a' : '#ffffff', borderColor: darkMode ? '#1f1f1f' : '#e2e8f0' }]}>
+                        <Text style={[styles.breakdownTitle, { color: darkMode ? '#ffffff' : '#0f172a' }]}>INCOME BREAKDOWN</Text>
+                        <DonutChart 
+                            data={incomeCategoryData} 
+                            emptyMessage="No income data yet"
+                            colors={['#15803d', '#16a34a', '#22c55e', '#4ade80', '#86efac', '#059669', '#10b981', '#34d399', '#6ee7b7', '#115e59']}
+                        />
+                    </View>
                 </View>
 
                 {/* Log Spend Entry Form */}
@@ -787,7 +999,7 @@ export default function App() {
                         {transactions.length === 0 ? (
                             <Text style={styles.emptyLogsText}>No records found.</Text>
                         ) : (
-                            transactions.map((t, idx) => {
+                            (isHistoryExpanded ? transactions : transactions.slice(0, 4)).map((t, idx) => {
                                 const isIncome = t.mode === 'received_upi' || t.mode === 'received_cash';
                                 return (
                                     <View key={t.id || idx} style={[styles.logItem, { borderBottomColor: darkMode ? '#1f1f1f' : '#e2e8f0' }]}>
@@ -810,9 +1022,20 @@ export default function App() {
                             })
                         )}
                     </View>
+                    {transactions.length > 4 && (
+                        <TouchableOpacity 
+                            onPress={() => setIsHistoryExpanded(!isHistoryExpanded)}
+                            style={[styles.expandBtn, { borderTopColor: darkMode ? '#1f1f1f' : '#e2e8f0' }]}
+                        >
+                            <Text style={[styles.expandBtnText, { color: darkMode ? '#ffffff' : '#2563eb' }]}>
+                                {isHistoryExpanded ? 'Show Less ▲' : `View All (${transactions.length}) ▼`}
+                            </Text>
+                        </TouchableOpacity>
+                    )}
                 </View>
             </ScrollView>
         </SafeAreaView>
+        </>
     );
 }
 
@@ -1112,21 +1335,29 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#0f172a',
     },
+    breakdownRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        width: '100%',
+        gap: 12,
+        marginBottom: 24,
+    },
     breakdownCard: {
+        flex: 1,
         backgroundColor: '#ffffff',
         borderColor: '#e2e8f0',
         borderWidth: 1,
         borderRadius: 16,
-        padding: 16,
-        marginBottom: 24,
+        padding: 12,
     },
     breakdownTitle: {
-        fontSize: 14,
-        fontWeight: '600',
+        fontSize: 10,
+        fontWeight: '700',
         color: '#0f172a',
-        letterSpacing: 1,
-        marginBottom: 16,
+        letterSpacing: 0.5,
+        marginBottom: 12,
         textTransform: 'uppercase',
+        textAlign: 'center',
     },
     emptyText: {
         color: '#94a3b8',
@@ -1135,25 +1366,26 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
     },
     donutContainer: {
-        flexDirection: 'row',
+        flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingVertical: 10,
+        justifyContent: 'center',
+        paddingVertical: 8,
     },
     donutSvgWrapper: {
-        width: 140,
-        height: 140,
+        width: 100,
+        height: 100,
         justifyContent: 'center',
         alignItems: 'center',
     },
     donutSvg: {
-        width: 140,
-        height: 140,
+        width: 100,
+        height: 100,
         transform: [{ rotate: '-90deg' }],
     },
     donutLegendContainer: {
-        flex: 1,
-        marginLeft: 16,
+        width: '100%',
+        marginTop: 12,
+        marginLeft: 0,
     },
     legendItem: {
         flexDirection: 'row',
@@ -1399,7 +1631,16 @@ const styles = StyleSheet.create({
         color: '#ef4444',
     },
     logsList: {
-        maxHeight: 280,
+    },
+    expandBtn: {
+        paddingVertical: 12,
+        alignItems: 'center',
+        borderTopWidth: 1,
+        borderStyle: 'solid',
+    },
+    expandBtnText: {
+        fontSize: 13,
+        fontWeight: 'bold',
     },
     emptyLogsText: {
         padding: 24,

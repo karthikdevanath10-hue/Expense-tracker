@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "campus_spend_native",
+    "name": "TrackO",
     "slug": "campus_spend_native",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -11,21 +11,34 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#08070c",
         "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "permissions": [
-        "android.permission.RECEIVE_SMS",
-        "android.permission.READ_SMS"
-      ],
+      "permissions": [],
       "package": "com.karthik.campusspend"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#08070c"
+    },
+    "plugins": [
+      "./plugins/withAndroidNotificationListener",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#08070c",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain"
+        }
+      ]
+    ],
     "extra": {
       "eas": {
         "projectId": "f78c47e2-597f-4b3e-a8d7-752171ded0b0"
