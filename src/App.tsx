@@ -107,20 +107,31 @@ const isTransactionCredit = (text, titleOrApp) => {
     const lowerText = text.toLowerCase();
     const lowerTitleOrApp = titleOrApp ? titleOrApp.toLowerCase() : '';
 
-    const directCreditKeywords = ["credited", "received", "added", "deposited", "refunded", "refund"];
+    // 1. Direct credit keywords in the main text
+    const directCreditKeywords = ["credited", "received", "added", "deposit", "refund", "cashback", "salary", "incoming", "inward", "reward"];
     if (directCreditKeywords.some(keyword => lowerText.includes(keyword))) {
         return true;
     }
 
+    // Also check if text has "credit" but not "credit card"
     if (lowerText.includes("credit") && !lowerText.includes("credit card")) {
         return true;
     }
 
-    const lowerWords = lowerText.split(/[^a-z]+/);
-    const sentIdx = lowerWords.indexOf("sent");
-    if (sentIdx !== -1) {
-        const toIdx = lowerWords.indexOf("to");
-        if (toIdx !== -1 && toIdx > sentIdx) {
+    // 2. Direct credit keywords in the title/app (if available)
+    if (lowerTitleOrApp) {
+        if (directCreditKeywords.some(keyword => lowerTitleOrApp.includes(keyword))) {
+            return true;
+        }
+        if (lowerTitleOrApp.includes("credit") && !lowerTitleOrApp.includes("credit card")) {
+            return true;
+        }
+    }
+
+    // 3. Handles "X has sent you..." or "sent [amount] to you" or "sent [amount] to your [bank account/wallet]"
+    if (lowerText.includes("sent")) {
+        const isSentCredit = ["sent you", "to you", "to your bank", "to your account", "to your a/c", "to your wallet"].some(phrase => lowerText.includes(phrase));
+        if (isSentCredit) {
             return true;
         }
     }
@@ -129,17 +140,42 @@ const isTransactionCredit = (text, titleOrApp) => {
 };
 
 const extractSignificantWords = (text) => {
-    const lowerText = text.toLowerCase();
-    const stopWords = new Set(["rs", "inr", "upi", "via", "ref", "credited", "debited", "spent", "paid", "received", "sent", "deposited", "added", "refunded", "refund", "your", "bank", "account", "from", "for", "and", "the", "has", "been", "dear", "customer", "successful", "transaction"]);
-    const words = lowerText.split(/[^a-z]+/);
+    if (!text) return [];
+    const stopWords = new Set([
+        "your", "account", "acct", "credited", "debited", "received", "sent", "paid", "spent", 
+        "transfer", "transferred", "payment", "bank", "alert", "dear", "customer", 
+        "ref", "reference", "upi", "txn", "transaction", "amount", "balance", 
+        "available", "limit", "card", "wallet", "cash", "from", "with", "into", 
+        "onto", "that", "this", "then", "them", "they", "have", "been", "done", "made",
+        "karnataka", "hdfc", "sbi", "icici", "paytm", "gpay", "phonepe", "axis", 
+        "kotak", "rbl", "yesb", "federal", "bob", "pnb", "alert", "sms", "auto", 
+        "purchase", "detected", "income", "successful", "success", "completed", "msg", "message",
+        "for", "via", "and", "the", "has", "was", "you", "out", "our", "are", "credit", "debit", "inr", "rs", "val"
+    ]);
+    const words = text.toLowerCase().split(/[^a-z]+/);
     return words.filter(w => w.length >= 3 && !stopWords.has(w));
 };
 
-const isDuplicateTransaction = (existingTxs, amount, isCredit, currentText, now = Date.now(), thresholdMs = 120 * 1000) => {
+const getNumericTimestamp = (ts) => {
+    if (!ts) return Date.now();
+    if (typeof ts === 'number') return ts;
+    if (ts.toMillis && typeof ts.toMillis === 'function') return ts.toMillis();
+    if (ts.seconds) return ts.seconds * 1000;
+    if (ts instanceof Date) return ts.getTime();
+    return Date.now();
+};
+
+const isDuplicateTransaction = (existingTxs, amount, isCredit, currentText, now = Date.now(), thresholdMs = 120 * 1000, notificationTime) => {
     const currentWords = extractSignificantWords(currentText);
 
     return existingTxs.some(tx => {
-        const timeDiff = Math.abs(tx.timestamp - now);
+        // 1. If notificationTime matches exactly, it's a duplicate of the same notification alert (e.g. system update)
+        if (notificationTime && tx.notificationTime && tx.notificationTime === notificationTime) {
+            return true;
+        }
+
+        const txTime = getNumericTimestamp(tx.timestamp);
+        const timeDiff = Math.abs(txTime - now);
         if (timeDiff > thresholdMs) return false;
 
         const isTxCredit = tx.mode === 'received_upi' || tx.mode === 'received_cash';
@@ -148,12 +184,15 @@ const isDuplicateTransaction = (existingTxs, amount, isCredit, currentText, now 
         const existingText = tx.rawText || tx.desc || '';
         const existingWords = extractSignificantWords(existingText);
 
-        if (currentWords.length > 0 && existingWords.length > 0) {
-            const hasOverlap = currentWords.some(word => existingWords.includes(word));
-            return hasOverlap;
+        // If one of the transactions has no specific merchant/words (like a generic bank SMS or GPay fallback),
+        // we assume it is a duplicate of the other transaction within the time threshold.
+        if (currentWords.length === 0 || existingWords.length === 0) {
+            return true;
         }
 
-        return true;
+        // If both contain specific merchant/sender words, they must share at least one word (e.g. "starbucks")
+        const hasOverlap = currentWords.some(word => existingWords.includes(word));
+        return hasOverlap;
     });
 };
 
@@ -196,6 +235,32 @@ export default function App() {
         setTimeout(() => setToast(null), 4000);
     };
 
+    const syncLocalData = async () => {
+        if (!user || !db) return;
+        try {
+            const localTxsStr = localStorage.getItem('local_txs');
+            if (localTxsStr) {
+                const localTxs = JSON.parse(localTxsStr);
+                const unsynced = localTxs.filter(tx => !tx.id || (typeof tx.id === 'string' && tx.id.startsWith('local_')));
+                for (const tx of unsynced) {
+                    const { id, ...txData } = tx;
+                    await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'transactions'), txData);
+                }
+            }
+            const localBudgetStr = localStorage.getItem('local_budget');
+            if (localBudgetStr) {
+                const localBudget = JSON.parse(localBudgetStr);
+                const budgetRef = doc(db, 'artifacts', appId, 'users', user.uid, 'config', 'budget');
+                const docSnap = await getDoc(budgetRef);
+                if (!docSnap.exists() && (localBudget.cash > 0 || localBudget.upi > 0)) {
+                    await setDoc(budgetRef, localBudget);
+                }
+            }
+        } catch (err) {
+            console.error("Local sync error:", err);
+        }
+    };
+
     // --- Load Local Backup Cache on Mount ---
     useEffect(() => {
         const localBudget = localStorage.getItem('local_budget');
@@ -229,31 +294,26 @@ export default function App() {
 
     // --- Sync Local Unsynced Data to Firestore on Login ---
     useEffect(() => {
-        if (!user || !db) return;
-        const syncLocalData = async () => {
+        syncLocalData();
+
+        // Setup a periodic check to retry syncing unsynced local transactions
+        // in case the app was offline and internet/wifi connection is restored.
+        const intervalId = setInterval(() => {
             try {
                 const localTxsStr = localStorage.getItem('local_txs');
                 if (localTxsStr) {
                     const localTxs = JSON.parse(localTxsStr);
-                    const unsynced = localTxs.filter(tx => !tx.id);
-                    for (const tx of unsynced) {
-                        await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'transactions'), tx);
-                    }
-                }
-                const localBudgetStr = localStorage.getItem('local_budget');
-                if (localBudgetStr) {
-                    const localBudget = JSON.parse(localBudgetStr);
-                    const budgetRef = doc(db, 'artifacts', appId, 'users', user.uid, 'config', 'budget');
-                    const docSnap = await getDoc(budgetRef);
-                    if (!docSnap.exists() && (localBudget.cash > 0 || localBudget.upi > 0)) {
-                        await setDoc(budgetRef, localBudget);
+                    const unsynced = localTxs.filter(tx => !tx.id || (typeof tx.id === 'string' && tx.id.startsWith('local_')));
+                    if (unsynced.length > 0) {
+                        syncLocalData();
                     }
                 }
             } catch (err) {
-                console.error("Local sync error:", err);
+                console.error("Periodic sync check error:", err);
             }
-        };
-        syncLocalData();
+        }, 10000); // Retry every 10 seconds
+
+        return () => clearInterval(intervalId);
     }, [user]);
 
     // --- 2. Firestore Data Sync ---
@@ -275,11 +335,32 @@ export default function App() {
         const txQuery = query(collection(db, 'artifacts', appId, 'users', user.uid, 'transactions'));
         const unsubTx = onSnapshot(txQuery, (snapshot) => {
             const dbTxs = [];
-            snapshot.forEach(docSnap => dbTxs.push({ id: docSnap.id, ...docSnap.data() }));
+            snapshot.forEach(docSnap => {
+                const data = docSnap.data();
+                dbTxs.push({ 
+                    id: docSnap.id, 
+                    ...data,
+                    timestamp: getNumericTimestamp(data.timestamp)
+                });
+            });
             
+            // Get current local unsynced transactions directly from local storage
+            let hasUnsynced = false;
+            try {
+                const localTxsStr = localStorage.getItem('local_txs');
+                if (localTxsStr) {
+                    const localTxs = JSON.parse(localTxsStr);
+                    const unsynced = localTxs.filter(lt => lt.id && lt.id.startsWith('local_') && !dbTxs.some(dt => dt.timestamp === lt.timestamp));
+                    if (unsynced.length > 0) {
+                        hasUnsynced = true;
+                    }
+                }
+            } catch (e) {
+                console.error(e);
+            }
+
             setTransactions(prev => {
                 const localUnsynced = prev.filter(t => t.id && t.id.startsWith('local_'));
-                // Keep local unsynced transactions that don't match any DB transaction by timestamp
                 const filteredLocal = localUnsynced.filter(lt => !dbTxs.some(dt => dt.timestamp === lt.timestamp));
                 
                 const merged = [...dbTxs, ...filteredLocal];
@@ -287,6 +368,10 @@ export default function App() {
                 localStorage.setItem('local_txs', JSON.stringify(merged));
                 return merged;
             });
+
+            if (hasUnsynced) {
+                syncLocalData();
+            }
         }, (error) => console.error("Transactions fetch error:", error));
 
         return () => { unsubBudget(); unsubTx(); };
@@ -339,14 +424,14 @@ export default function App() {
         setIsBudgetOpen(false);
     };
 
-    const saveTransaction = async (amt, txMode, txDesc, txTags, rawText) => {
+    const saveTransaction = async (amt, txMode, txDesc, txTags, rawText, notificationTime) => {
         if (!amt || amt <= 0) {
             showToast("Enter a valid amount", "error");
             return false;
         }
 
         const isCredit = txMode === 'received_upi' || txMode === 'received_cash';
-        const isDuplicate = isDuplicateTransaction(transactions, amt, isCredit, rawText || txDesc || '');
+        const isDuplicate = isDuplicateTransaction(transactions, amt, isCredit, rawText || txDesc || '', Date.now(), 120 * 1000, notificationTime);
         if (isDuplicate) {
             console.log("Duplicate transaction ignored:", amt, txDesc);
             return false;
@@ -360,18 +445,24 @@ export default function App() {
             desc: txDesc || txTags.join(', '),
             timestamp: Date.now(),
             dateStr: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            rawText: rawText || ''
+            rawText: rawText || '',
+            notificationTime: notificationTime || ''
         };
 
+        // 1. Save locally first (instant UI update and offline persistence)
+        setTransactions(prev => {
+            const newTxs = [payload, ...prev];
+            localStorage.setItem('local_txs', JSON.stringify(newTxs));
+            return newTxs;
+        });
+
+        // 2. Attempt to upload in the background
         if (user && db) {
-            await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'transactions'), payload);
-            showToast("Transaction synced!", "success");
+            const { id, ...txData } = payload;
+            addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'transactions'), txData)
+                .then(() => showToast("Transaction synced!", "success"))
+                .catch(err => console.error("Background sync failed for new transaction:", err));
         } else {
-            setTransactions(prev => {
-                const newTxs = [payload, ...prev];
-                localStorage.setItem('local_txs', JSON.stringify(newTxs));
-                return newTxs;
-            });
             showToast("Transaction saved locally.");
         }
         return true;
